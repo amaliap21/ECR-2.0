@@ -1,0 +1,15 @@
+ECR Ratio (Agreement): 1.0663
+ECR Ratio (Cosine):    1.0997
+Intra (Agreement):     0.7883
+Inter (Agreement):     0.7393
+Intra (Cosine):        0.6594
+Inter (Cosine):        0.5996
+Homophily:             0.2230
+Threshold:             1.0260
+Classification:        FENOMENA ECHO CHAMBER
+
+Diffusion Bias:
+  slope=0.2029, R²=0.0419, p=5.69e-16
+  bias_ratio=0.8540
+  t-test: t=7.7869, p=1.26e-14
+  Cohen's d=-0.1989
