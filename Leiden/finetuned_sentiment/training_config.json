@@ -1,0 +1,18 @@
+{
+  "model_name": "cardiffnlp/twitter-xlm-roberta-base-sentiment-multilingual",
+  "roberta_api": "http://103.67.43.247:9443/sentiment/infer-sentiment-roberta",
+  "phase1_epochs": 3,
+  "phase1_lr": 0.0005,
+  "phase1_batch_size": 32,
+  "phase2_epochs": 5,
+  "phase2_lr": 2e-05,
+  "phase2_batch_size": 16,
+  "max_length": 128,
+  "val_split": 0.1,
+  "warmup_steps": 0.1,
+  "weight_decay": 0.01,
+  "early_stopping_patience": 2,
+  "seed": 42,
+  "random_test_per_topic": 70,
+  "output_dir": "finetuned_sentiment"
+}

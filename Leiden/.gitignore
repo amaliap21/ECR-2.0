@@ -207,5 +207,9 @@ marimo/_lsp/
 __marimo__/
 
 # Large model artifacts and pipeline outputs
-finetuned_sentiment/
+# Keep inference-critical files (config.json, model.safetensors, tokenizer*, training_config.json);
+# ignore training intermediates (checkpoints, phase1, training_args.bin).
+finetuned_sentiment/checkpoint-*/
+finetuned_sentiment/phase1/
+finetuned_sentiment/training_args.bin
 pipeline_out/
