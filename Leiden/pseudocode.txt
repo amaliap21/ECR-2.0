@@ -1,0 +1,135 @@
+1. Preprocessing
+
+FUNCTION preprocess(raw_tweets):
+    tweets ← load_csv(raw_tweets)
+    FOR each tweet IN tweets:
+        text ← lowercase(tweet.text)
+        text ← remove_urls(text)
+        text ← remove_mentions(text)           // @username
+        text ← remove_hashtags_symbols(text)   // keep word, drop #
+        text ← remove_emojis_punctuation(text)
+        text ← normalize_slang(text)           // Indonesian slang → baku
+        text ← remove_stopwords(text)
+        tweet.clean_text ← text
+    tweets ← drop_duplicates(tweets, key=clean_text)
+    tweets ← drop_empty(tweets)
+    RETURN tweets
+
+2. Sentiment Classification (fine-tuned model)
+
+FUNCTION classify_sentiment(tweets, model):
+    FOR each batch IN tweets:
+        logits ← model.forward(batch.clean_text)
+        labels ← argmax(softmax(logits))   // {negative, neutral, positive}
+        scores ← softmax(logits)
+        batch.sentiment ← labels
+        batch.sentiment_score ← scores
+    RETURN tweets
+
+3. Interaction Graph Construction
+
+FUNCTION build_graph(tweets):
+    G ← empty_directed_graph()
+    FOR each tweet t IN tweets:
+        G.add_node(t.user, sentiment=t.sentiment)
+        IF t.is_retweet OR t.is_reply OR t.is_mention:
+            target ← t.target_user
+            G.add_edge(t.user → target, weight += 1)
+    RETURN G
+
+4. Community Detection (Leiden)
+
+FUNCTION leiden_communities(G, resolution=1.0):
+    // Phase 1: local moving
+    partition ← singleton_partition(G.nodes)
+    REPEAT:
+        improved ← FALSE
+        FOR each node v IN random_order(G.nodes):
+            best_C ← argmax over neighbor communities C of ΔQ(v → C)
+            IF best_C ≠ current_community(v):
+                move v → best_C
+                improved ← TRUE
+    UNTIL NOT improved
+
+    // Phase 2: refinement (Leiden's key step vs Louvain)
+    refined ← refine_partition(partition)   // ensures well-connected communities
+
+    // Phase 3: aggregate
+    G_agg ← contract(G, refined)
+    IF |communities| changed:
+        RETURN leiden_communities(G_agg, resolution)
+    RETURN partition
+
+5. Homophily Measurement
+
+FUNCTION homophily(G, attribute):   // attribute = sentiment or community
+    same ← 0
+    total ← 0
+    FOR each edge (u,v) IN G.edges:
+        total ← total + 1
+        IF attribute[u] == attribute[v]:
+            same ← same + 1
+    observed ← same / total
+
+    // Expected under random mixing
+    expected ← Σ_c (fraction_c)²
+    assortativity ← (observed − expected) / (1 − expected)
+    RETURN assortativity
+
+6. Diffusion Bias (Independent Cascade)
+
+FUNCTION diffusion_ic(G, seeds, p_base, bias_fn):
+    active ← set(seeds)
+    newly_active ← set(seeds)
+    cascade_log ← []
+
+    WHILE newly_active not empty:
+        next_active ← empty_set
+        FOR each u IN newly_active:
+            FOR each neighbor v OF u WHERE v NOT IN active:
+                // Bias: higher propagation within same community / sentiment
+                p ← p_base × bias_fn(u, v)
+                IF random() < p:
+                    next_active.add(v)
+                    cascade_log.append((u, v, step))
+        active ← active ∪ next_active
+        newly_active ← next_active
+
+    RETURN active, cascade_log
+
+FUNCTION bias_fn(u, v):
+    b ← 1.0
+    IF community[u] == community[v]: b ← b × α    // homophily boost
+    IF sentiment[u] == sentiment[v]: b ← b × β
+    RETURN b
+
+7. Echo Chamber Ratio (ECR 2.0)
+
+FUNCTION compute_ECR(G, communities, sentiments):
+    ecr_scores ← {}
+    FOR each community C IN communities:
+        internal_edges ← edges(u,v) WHERE u,v ∈ C
+        external_edges ← edges(u,v) WHERE u ∈ C XOR v ∈ C
+
+        // Structural insularity
+        insularity ← |internal_edges| / (|internal_edges| + |external_edges|)
+
+        // Sentiment polarization within C
+        p_pos ← fraction(sentiment == positive, C)
+        p_neg ← fraction(sentiment == negative, C)
+        polarization ← |p_pos − p_neg|
+    RETURN ecr_scores
+
+8. Main Pipeline
+
+FUNCTION ecr2_pipeline(raw_csv):
+    tweets    ← preprocess(raw_csv)
+    tweets    ← classify_sentiment(tweets, finetuned_model)
+    G         ← build_graph(tweets)
+    comms     ← leiden_communities(G)
+    h_sent    ← homophily(G, sentiment)
+    h_comm    ← homophily(G, community)
+    cascades  ← diffusion_ic(G, seeds, p_base=0.05, bias_fn)
+    ecr       ← compute_ECR(G, comms, sentiment)
+    RETURN {graph: G, communities: comms, homophily: (h_sent, h_comm),
+            diffusion: cascades, ecr: ecr}
