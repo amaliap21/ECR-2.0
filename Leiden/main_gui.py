@@ -890,7 +890,7 @@ def create_gui():
                     label='Upload Dataset CSV',
                     on_upload=on_upload,
                     auto_upload=True,
-                ).props('accept=.csv').classes('w-full')
+                ).props('accept=".csv,text/csv,application/vnd.ms-excel"').classes('w-full')
 
             #  General Settings 
             with ui.card().classes('w-full p-6'):
