@@ -4,6 +4,5 @@ __pycache__/
 .venv/
 venv/
 *.egg-info/
-.git/
 total_data_cleaned_*.csv
 uploads/
