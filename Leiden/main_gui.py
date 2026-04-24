@@ -1213,7 +1213,8 @@ def create_gui():
 
         ui.timer(0.5, safe_timer_tick)
 
-    ui.run(title='ECR 2.0 Pipeline — Leiden', host='0.0.0.0', port=8080, dark=False)
+    port = int(os.environ.get('PORT', 8080))
+    ui.run(title='ECR 2.0 Pipeline — Leiden', host='0.0.0.0', port=port, dark=False)
 
 
 if __name__ in {"__main__", "__mp_main__"}:
