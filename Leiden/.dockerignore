@@ -1,9 +1,0 @@
-__pycache__/
-*.pyc
-.env
-.venv/
-venv/
-*.egg-info/
-.git/
-total_data_cleaned_*.csv
-uploads/
