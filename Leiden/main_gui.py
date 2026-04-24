@@ -225,15 +225,18 @@ class LeidenPipelineGUI:
             else:
                 self.log(f"  No cache. Running inference (pertama kali, akan di-cache)...")
 
-                for lfs_check in ['tokenizer.json', 'model.safetensors', 'config.json']:
+                is_lfs = False
+                for lfs_check in ['tokenizer.json', 'model.safetensors']:
                     check_file = os.path.join(model_path, lfs_check)
                     if os.path.exists(check_file):
                         with open(check_file, 'rb') as _f:
                             header = _f.read(50)
                         if b'git-lfs' in header:
-                            self.log("[ERROR] Model files are Git LFS pointers (not downloaded).")
-                            self.log("  Jalankan pipeline secara lokal, atau gunakan 'Load Previous Results'.")
-                            return
+                            is_lfs = True
+                            break
+                if is_lfs:
+                    model_path = 'amaliap21/ecr2-sentiment-xlmroberta'
+                    self.log(f"  Local model is LFS pointer, downloading from HuggingFace: {model_path}")
 
                 try:
                     from transformers import AutoTokenizer, AutoModelForSequenceClassification
