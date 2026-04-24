@@ -878,17 +878,17 @@ def create_gui():
 
                 async def on_upload(e):
                     try:
+                        f = e.file
                         uploads_dir = 'uploads'
                         os.makedirs(uploads_dir, exist_ok=True)
-                        upload_path = os.path.join(uploads_dir, e.name)
-                        content = e.content.read() if hasattr(e.content, 'read') else e.content
-                        with open(upload_path, 'wb') as f:
-                            f.write(content)
+                        upload_path = os.path.join(uploads_dir, f.name)
+                        data = await f.read()
+                        with open(upload_path, 'wb') as out:
+                            out.write(data)
                         pipeline.uploaded_files['dataset'] = os.path.abspath(upload_path)
-                        size = os.path.getsize(upload_path)
-                        upload_label.set_text(f'Uploaded: {e.name} ({size:,} bytes)')
+                        upload_label.set_text(f'Uploaded: {f.name} ({len(data):,} bytes)')
                         upload_label.classes('text-green-600', remove='text-gray-500')
-                        ui.notify(f'Dataset uploaded: {e.name}', type='positive')
+                        ui.notify(f'Dataset uploaded: {f.name}', type='positive')
                     except Exception as ex:
                         upload_label.set_text(f'Upload gagal: {ex}')
                         upload_label.classes('text-red-600', remove='text-gray-500')
