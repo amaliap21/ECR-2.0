@@ -876,25 +876,29 @@ def create_gui():
 
                 upload_label = ui.label('Belum ada file diupload').classes('text-sm text-gray-500 mt-2')
 
-                def on_upload(e):
+                async def on_upload(e):
                     try:
-                        uploads_dir = os.path.join(_script_dir, 'uploads')
+                        uploads_dir = 'uploads'
                         os.makedirs(uploads_dir, exist_ok=True)
                         upload_path = os.path.join(uploads_dir, e.name)
                         content = e.content.read() if hasattr(e.content, 'read') else e.content
                         with open(upload_path, 'wb') as f:
                             f.write(content)
-                        pipeline.uploaded_files['dataset'] = upload_path
-                        upload_label.set_text(f'Uploaded: {e.name} ({os.path.getsize(upload_path):,} bytes)')
+                        pipeline.uploaded_files['dataset'] = os.path.abspath(upload_path)
+                        size = os.path.getsize(upload_path)
+                        upload_label.set_text(f'Uploaded: {e.name} ({size:,} bytes)')
+                        upload_label.classes('text-green-600', remove='text-gray-500')
                         ui.notify(f'Dataset uploaded: {e.name}', type='positive')
                     except Exception as ex:
+                        upload_label.set_text(f'Upload gagal: {ex}')
+                        upload_label.classes('text-red-600', remove='text-gray-500')
                         ui.notify(f'Upload gagal: {ex}', type='negative')
 
                 ui.upload(
-                    label='Upload Dataset CSV',
                     on_upload=on_upload,
                     auto_upload=True,
-                ).props('accept=".csv,text/csv,application/vnd.ms-excel"').classes('w-full')
+                    label='Drag & drop CSV disini atau klik untuk browse',
+                ).classes('w-full')
 
             #  General Settings 
             with ui.card().classes('w-full p-6'):
