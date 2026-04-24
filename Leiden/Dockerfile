@@ -9,14 +9,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && git lfs install \
     && rm -rf /var/lib/apt/lists/*
 
+RUN git clone https://github.com/amaliap21/ECR-2.0.git /tmp/repo \
+    && cd /tmp/repo && git lfs pull --include="Leiden/**" \
+    && cp -r /tmp/repo/Leiden/* /app/ \
+    && rm -rf /tmp/repo
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-RUN git lfs pull
-
-RUN rm -rf .git
 
 ENV PORT=8080
 EXPOSE 8080
