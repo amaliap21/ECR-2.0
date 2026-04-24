@@ -212,7 +212,13 @@ class LeidenPipelineGUI:
             dataset_name = os.path.splitext(os.path.basename(data_path))[0]
             cache_path = os.path.join(outdir, f"{dataset_name}_sentiment_cache.csv")
 
+            cache_valid = False
             if os.path.exists(cache_path):
+                df_sent = pd.read_csv(cache_path, nrows=5)
+                if 'indobert_neg' in df_sent.columns or 'negative' in df_sent.columns:
+                    cache_valid = True
+
+            if cache_valid:
                 self.log(f"  Cache ditemukan: {cache_path}")
                 df_sent = pd.read_csv(cache_path)
                 self.log(f"  Loaded {len(df_sent):,} cached rows.")
