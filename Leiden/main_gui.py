@@ -273,11 +273,26 @@ class LeidenPipelineGUI:
                     torch.cuda.empty_cache()
 
             # Map to proba_cols
+            self.log(f"  df_sent columns: {list(df_sent.columns)}")
+            self.log(f"  df_sent shape: {df_sent.shape}")
             col_neg, col_neu, col_pos = proba_cols
-            df[col_neg] = df_sent['indobert_neg'].values
-            df[col_neu] = df_sent['indobert_neu'].values
-            df[col_pos] = df_sent['indobert_pos'].values
-            df['sentiment_label'] = df_sent['indobert_label'].values
+
+            sent_col_map = {
+                'negative': col_neg, 'neg': col_neg, 'indobert_neg': col_neg,
+                'neutral': col_neu, 'neu': col_neu, 'indobert_neu': col_neu,
+                'positive': col_pos, 'pos': col_pos, 'indobert_pos': col_pos,
+            }
+            label_col = next((c for c in df_sent.columns if 'label' in c.lower()), None)
+
+            for src_col in df_sent.columns:
+                if src_col in sent_col_map:
+                    df[sent_col_map[src_col]] = df_sent[src_col].values
+            if label_col:
+                df['sentiment_label'] = df_sent[label_col].values
+
+            if col_neg not in df.columns or col_pos not in df.columns:
+                self.log(f"[ERROR] Sentiment columns not mapped. df_sent has: {list(df_sent.columns)}")
+                return
 
             elapsed = time.time() - start
             self.timings["Sentiment inference"] = elapsed
