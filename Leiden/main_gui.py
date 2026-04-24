@@ -795,7 +795,7 @@ def create_gui():
 
     # Resolve absolute path to finetuned model relative to this script
     _script_dir = os.path.dirname(os.path.abspath(__file__))
-    _default_finetuned = os.path.join(_script_dir, "finetuned_sentiment")
+    _default_finetuned = os.path.join(_script_dir, "finetuned_sentiment_cardiff_xlmroberta")
 
     config = {
         'workdir': 'pipeline_out',
@@ -874,12 +874,23 @@ def create_gui():
                 )
                 ui.label('Required: from_id, cleaned_text, + reply_to_user_id / retweet_from_user_id / mentioned').classes('text-xs text-gray-500 mb-2')
 
-                ui.label('Masukkan path file CSV di komputer:').classes('text-sm font-medium mt-2')
-                config['dataset_path'] = ''
-                dataset_path_input = ui.input(
-                    placeholder=r'Contoh: C:\Users\USER\Documents\TA\ECR-2.0\Leiden\total_data_cleaned_mcd.csv',
-                ).classes('w-full')
-                dataset_path_input.bind_value(config, 'dataset_path')
+                upload_label = ui.label('Belum ada file diupload').classes('text-sm text-gray-500 mt-2')
+
+                def on_upload(e):
+                    uploads_dir = 'uploads'
+                    os.makedirs(uploads_dir, exist_ok=True)
+                    upload_path = os.path.join(uploads_dir, e.name)
+                    with open(upload_path, 'wb') as f:
+                        f.write(e.content.read())
+                    pipeline.uploaded_files['dataset'] = upload_path
+                    upload_label.set_text(f'Uploaded: {e.name}')
+                    ui.notify(f'Dataset uploaded: {e.name}', type='positive')
+
+                ui.upload(
+                    label='Upload Dataset CSV',
+                    on_upload=on_upload,
+                    auto_upload=True,
+                ).props('accept=.csv').classes('w-full')
 
             #  General Settings 
             with ui.card().classes('w-full p-6'):
@@ -905,7 +916,7 @@ def create_gui():
             with ui.card().classes('w-full p-6'):
                 ui.label('Sentiment Configuration').classes('text-xl font-semibold mb-4')
                 ui.label(
-                    'Menggunakan fine-tuned XLM-RoBERTa model dari folder finetuned_sentiment/. '
+                    'Menggunakan fine-tuned XLM-RoBERTa model dari folder finetuned_sentiment_cardiff_xlmroberta/. '
                     'Hasil inferensi di-cache otomatis agar tidak perlu diulang.'
                 ).classes('text-xs text-gray-500 mb-2')
 
@@ -913,7 +924,7 @@ def create_gui():
                     with ui.column().classes('flex-1'):
                         info_label('Model Path',
                                    'Path ke folder fine-tuned model (berisi config.json, model.safetensors, tokenizer). '
-                                   'Default mengarah ke folder finetuned_sentiment/ di project ini.')
+                                   'Default mengarah ke folder finetuned_sentiment_cardiff_xlmroberta/ di project ini.')
                         ft_path_input = ui.input(value=config['finetuned_model_path']).classes('w-full')
                         ft_path_input.bind_value(config, 'finetuned_model_path')
 
@@ -1087,11 +1098,10 @@ def create_gui():
                         ui.notify('Pipeline already running!', type='warning')
                         return
 
-                    ds = config.get('dataset_path', '').strip().strip('"').strip("'")
+                    ds = pipeline.uploaded_files.get('dataset', '')
                     if not ds or not os.path.isfile(ds):
-                        ui.notify(f'Path tidak valid: "{ds}"', type='negative')
+                        ui.notify('Upload dataset CSV terlebih dahulu!', type='negative')
                         return
-                    pipeline.uploaded_files['dataset'] = ds
 
                     _prev_viz_count[0] = 0
                     pipeline.viz_paths = []
@@ -1162,14 +1172,14 @@ def create_gui():
         def update_status():
             status_container.clear()
             with status_container:
-                ds_path = config.get('dataset_path', '').strip().strip('"').strip("'")
+                ds_path = pipeline.uploaded_files.get('dataset', '')
                 dataset_ok = bool(ds_path) and os.path.isfile(ds_path)
 
                 if pipeline.is_running:
                     ui.label('Running Pipeline...').classes('text-lg text-blue-600 font-medium')
                     run_button.props('loading')
                 elif not dataset_ok:
-                    ui.label('Masukkan path dataset CSV').classes('text-lg text-orange-600 font-medium')
+                    ui.label('Upload dataset CSV untuk memulai').classes('text-lg text-orange-600 font-medium')
                     run_button.props(remove='loading')
                 else:
                     ui.label('Ready to run').classes('text-lg text-green-600 font-medium')
