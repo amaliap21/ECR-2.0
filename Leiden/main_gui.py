@@ -224,6 +224,16 @@ class LeidenPipelineGUI:
                 self.log(f"  Loaded {len(df_sent):,} cached rows.")
             else:
                 self.log(f"  No cache. Running inference (pertama kali, akan di-cache)...")
+
+                config_file = os.path.join(model_path, 'config.json')
+                if os.path.exists(config_file):
+                    with open(config_file, 'r') as _f:
+                        first_line = _f.readline()
+                    if 'git-lfs' in first_line:
+                        self.log("[ERROR] Model files are Git LFS pointers (not downloaded).")
+                        self.log("  Jalankan pipeline secara lokal, atau gunakan 'Load Previous Results'.")
+                        return
+
                 try:
                     from transformers import AutoTokenizer, AutoModelForSequenceClassification
                     import torch
