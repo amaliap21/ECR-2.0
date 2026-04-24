@@ -877,14 +877,18 @@ def create_gui():
                 upload_label = ui.label('Belum ada file diupload').classes('text-sm text-gray-500 mt-2')
 
                 def on_upload(e):
-                    uploads_dir = 'uploads'
-                    os.makedirs(uploads_dir, exist_ok=True)
-                    upload_path = os.path.join(uploads_dir, e.name)
-                    with open(upload_path, 'wb') as f:
-                        f.write(e.content.read())
-                    pipeline.uploaded_files['dataset'] = upload_path
-                    upload_label.set_text(f'Uploaded: {e.name}')
-                    ui.notify(f'Dataset uploaded: {e.name}', type='positive')
+                    try:
+                        uploads_dir = os.path.join(_script_dir, 'uploads')
+                        os.makedirs(uploads_dir, exist_ok=True)
+                        upload_path = os.path.join(uploads_dir, e.name)
+                        content = e.content.read() if hasattr(e.content, 'read') else e.content
+                        with open(upload_path, 'wb') as f:
+                            f.write(content)
+                        pipeline.uploaded_files['dataset'] = upload_path
+                        upload_label.set_text(f'Uploaded: {e.name} ({os.path.getsize(upload_path):,} bytes)')
+                        ui.notify(f'Dataset uploaded: {e.name}', type='positive')
+                    except Exception as ex:
+                        ui.notify(f'Upload gagal: {ex}', type='negative')
 
                 ui.upload(
                     label='Upload Dataset CSV',
