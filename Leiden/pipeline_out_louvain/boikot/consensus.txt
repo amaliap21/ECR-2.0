@@ -1,0 +1,38 @@
+=== RESULTS: BOIKOT (Louvain on total_data_cleaned) ===
+
+=== GLOBAL WITHIN-COMMUNITY CONSENSUS ===
+Mean = 0.7734
+
+=== GLOBAL BETWEEN-COMMUNITY CONSENSUS ===
+Mean = 0.7160
+
+=== ECHO CHAMBER RATIO (ECR) ===
+ECR (Mean) = 1.0803
+
+=== COMMUNITY INFO ===
+Total communities detected (Louvain): 364610
+Total communities after user merge: 364610
+Communities with >= 5 members (used for ECR): 872
+
+Community sizes (filtered, top 20):
+  Community 13156: 3921 members
+  Community 17586: 2573 members
+  Community 1193: 2163 members
+  Community 31175: 2018 members
+  Community 15869: 1951 members
+  Community 17601: 1352 members
+  Community 18321: 1307 members
+  Community 356919: 1300 members
+  Community 20935: 1165 members
+  Community 182: 1161 members
+  Community 196: 1136 members
+  Community 34301: 1130 members
+  Community 2: 912 members
+  Community 16560: 884 members
+  Community 15798: 744 members
+  Community 15833: 742 members
+  Community 13221: 698 members
+  Community 35499: 655 members
+  Community 13072: 640 members
+  Community 34223: 612 members
+  ... and 852 more communities

@@ -1,0 +1,38 @@
+=== RESULTS: VAKSIN (Louvain on total_data_cleaned) ===
+
+=== GLOBAL WITHIN-COMMUNITY CONSENSUS ===
+Mean = 0.8199
+
+=== GLOBAL BETWEEN-COMMUNITY CONSENSUS ===
+Mean = 0.8087
+
+=== ECHO CHAMBER RATIO (ECR) ===
+ECR (Mean) = 1.0139
+
+=== COMMUNITY INFO ===
+Total communities detected (Louvain): 478200
+Total communities after user merge: 478200
+Communities with >= 5 members (used for ECR): 3982
+
+Community sizes (filtered, top 20):
+  Community 261913: 1929 members
+  Community 359870: 1544 members
+  Community 104596: 1523 members
+  Community 268767: 1520 members
+  Community 34235: 1467 members
+  Community 430809: 1192 members
+  Community 453328: 1162 members
+  Community 135152: 1125 members
+  Community 367718: 1053 members
+  Community 397834: 940 members
+  Community 245295: 821 members
+  Community 476233: 760 members
+  Community 213108: 735 members
+  Community 451679: 717 members
+  Community 46019: 626 members
+  Community 266134: 617 members
+  Community 13311: 610 members
+  Community 147851: 564 members
+  Community 472977: 548 members
+  Community 105374: 535 members
+  ... and 3962 more communities

@@ -1,0 +1,38 @@
+=== RESULTS: INDONESIA_GELAP (Louvain on total_data_cleaned) ===
+
+=== GLOBAL WITHIN-COMMUNITY CONSENSUS ===
+Mean = 0.8298
+
+=== GLOBAL BETWEEN-COMMUNITY CONSENSUS ===
+Mean = 0.7630
+
+=== ECHO CHAMBER RATIO (ECR) ===
+ECR (Mean) = 1.0876
+
+=== COMMUNITY INFO ===
+Total communities detected (Louvain): 442169
+Total communities after user merge: 442169
+Communities with >= 5 members (used for ECR): 569
+
+Community sizes (filtered, top 20):
+  Community 62691: 731 members
+  Community 74059: 645 members
+  Community 149236: 548 members
+  Community 350416: 465 members
+  Community 101532: 363 members
+  Community 314268: 349 members
+  Community 71703: 315 members
+  Community 408886: 292 members
+  Community 30120: 272 members
+  Community 311773: 226 members
+  Community 20957: 205 members
+  Community 131853: 205 members
+  Community 132412: 185 members
+  Community 96387: 183 members
+  Community 48308: 181 members
+  Community 397018: 171 members
+  Community 108295: 170 members
+  Community 71226: 169 members
+  Community 105003: 168 members
+  Community 22885: 165 members
+  ... and 549 more communities
