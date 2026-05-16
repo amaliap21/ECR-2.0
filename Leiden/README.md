@@ -138,7 +138,7 @@ Hasil menunjukkan bahwa pipeline mampu mendeteksi echo chamber secara kuantitati
 │  STEP 13-14: Output                                             │
 │  • Simpan CSV, TXT ke output directory                          │
 │  • Generate 10 visualisasi PNG                                  │
-│  • Tampilkan di GUI browser                                     │
+│  • Tampilkan di GUI browser / print log di CLI                  │
 └────────────────────────────┬────────────────────────────────────┘
                              │
                              ▼
@@ -199,7 +199,9 @@ pip install numpy pandas networkx nicegui matplotlib tqdm igraph leidenalg infom
 
 ## Cara Menjalankan
 
-### GUI Mode (Recommended)
+Tersedia 2 mode: **GUI** (interaktif lewat browser) dan **CLI** (terminal). Keduanya menjalankan pipeline yang sama persis dan menghasilkan output yang identik — beda hanya di interface input.
+
+### GUI Mode
 
 ```bash
 cd Leiden
@@ -210,20 +212,66 @@ Buka browser di **http://localhost:8080**
 
 **Langkah-langkah:**
 
-1. Masukkan path dataset CSV (e.g. `total_data_cleaned_mcd.csv`)
-2. Konfigurasi parameter (atau gunakan default)
-3. Klik **Run Pipeline** — hasil muncul di browser
+1. Upload dataset CSV (e.g. `total_data_cleaned_mcd.csv`)
+2. Konfigurasi parameter di form (atau gunakan default)
+3. Klik **Run Pipeline** — log dan visualisasi muncul di browser
 4. Untuk demo/presentasi: klik **Load Previous Results** untuk menampilkan hasil pipeline sebelumnya secara instan
 
-### CLI Mode (via Notebook)
+### CLI Mode
 
-Lihat notebook di folder `code_boikot/`, `code_indonesia_gelap/`, atau `code_vaksin/` untuk contoh pipeline lengkap via Jupyter.
+```bash
+cd Leiden
+python main.py --dataset total_data_cleaned_mcd.csv
+```
+
+Semua parameter GUI tersedia sebagai flag. Contoh penggunaan:
+
+```bash
+# Default (semua step jalan, auto-resolution, no calibration)
+python main.py --dataset data.csv
+
+# Custom output directory + topic polarity
+python main.py --dataset data.csv --workdir hasil_vaksin --topic-polarity positive_is_pro
+
+# Skip diffusion (lebih cepat) + aktifkan calibration
+python main.py --dataset data.csv --no-diffusion --calibration --calibration-method temperature
+
+# Manual resolution untuk Leiden
+python main.py --dataset data.csv --manual-resolution --resolution 1.5
+
+# Lihat semua opsi
+python main.py --help
+```
+
+**Daftar flag CLI (mirror dari config GUI):**
+
+| Flag | Default | Padanan di GUI |
+|------|---------|----------------|
+| `--dataset PATH` | (wajib) | Upload CSV |
+| `--workdir PATH` | `pipeline_out` | Output Directory |
+| `--random-state INT` | `42` | Random State |
+| `--finetuned-model-path PATH` | `finetuned_sentiment_cardiff_xlmroberta/` | Model Path |
+| `--text-col NAME` | `cleaned_text` | Text Column |
+| `--batch-size INT` | `64` | Batch Size |
+| `--max-length INT` | `128` | Max Length |
+| `--proba-cols neg,neu,pos` | `p_neg,p_neu,p_pos` | Probability Columns |
+| `--topic-polarity {negative_is_pro,positive_is_pro}` | `negative_is_pro` | Topic Polarity |
+| `--calibration` / `--no-calibration` | off | Enable Calibration |
+| `--calibration-method {isotonic,temperature}` | `isotonic` | Calibration Method |
+| `--auto-resolution` / `--manual-resolution` | auto | Auto (log10-based) |
+| `--resolution FLOAT` | `1.0` | Manual Resolution |
+| `--diffusion` / `--no-diffusion` | on | Enable Diffusion Simulation |
+| `--p-activate FLOAT` | `0.05` | Activation Probability |
+| `--n-runs INT` | `20` | IC Runs per Seed |
+| `--n-threshold-samples INT` | `100` | Threshold Null Samples |
 
 ### Test Cepat
 
 ```bash
-python generate_test_data.py    # Generate test_data.csv (800 rows, 150 users)
-python main_gui.py              # Jalankan GUI, masukkan path test_data.csv
+python generate_test_data.py                        # Generate test_data.csv (800 rows, 150 users)
+python main.py --dataset test_data.csv              # CLI mode
+# atau
+python main_gui.py                                  # GUI mode
 ```
 
 ---
@@ -233,6 +281,7 @@ python main_gui.py              # Jalankan GUI, masukkan path test_data.csv
 ```
 Leiden/
 │
+├── main.py                      # CLI entry point (argparse, sama I/O dengan GUI)
 ├── main_gui.py                  # GUI utama (NiceGUI, port 8080)
 ├── ecr2_pipeline.py             # Library pipeline ECR (semua fungsi core)
 ├── visualizations.py            # Modul visualisasi (10 chart matplotlib)
@@ -286,11 +335,24 @@ Leiden/
 
 ## File-File Penting
 
+### `main.py` — CLI Pipeline
+
+Entry point command-line untuk menjalankan pipeline tanpa GUI. Mirror lengkap dari `main_gui.py` — semua step, semua output, semua parameter sama persis, beda hanya di interface input (argparse vs form web). Cocok untuk:
+
+- Batch processing beberapa dataset via shell script
+- Menjalankan pipeline di server tanpa browser
+- Reproducibility (semua parameter eksplisit di command line)
+
+```bash
+python main.py --dataset data.csv [opsi...]
+python main.py --help    # daftar lengkap flag
+```
+
 ### `main_gui.py` — GUI Pipeline
 
 Web interface (NiceGUI) yang mengorkestrasi seluruh pipeline. Fitur:
 
-- Input path CSV dataset
+- Upload CSV dataset lewat browser
 - Konfigurasi semua parameter dengan tooltip (i) info
 - Sentiment inference dengan fine-tuned model (auto-cache)
 - Leiden + Infomap dijalankan parallel
@@ -360,7 +422,7 @@ Minimal satu dari `reply_to_user_id`, `retweet_from_user_id`, atau `mentioned` h
 
 ## Pipeline Steps
 
-Pipeline GUI menjalankan 14 langkah:
+Pipeline (GUI maupun CLI) menjalankan 14 langkah yang sama:
 
 1. **Load Data** — Baca CSV, validasi kolom, build username map
 2. **Sentiment Inference** — Fine-tuned model inference (auto-cache setelah run pertama)

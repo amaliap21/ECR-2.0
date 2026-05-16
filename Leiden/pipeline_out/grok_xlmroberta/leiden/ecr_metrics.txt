@@ -1,0 +1,22 @@
+ECR 2.0 Results — Leiden
+==================================================
+Intra-community agreement : 0.747150
+Inter-community agreement : 0.789756
+ECR 2.0 ratio             : 0.946052
+Homophily (Pearson r)      : -0.061871
+Threshold                  : 0.948016
+Classification             : Fenomena Non-Echo Chamber
+Number of communities      : 56
+Resolution                 : 3.167
+Topic polarity             : positive_is_pro
+
+--- Community Quality Metrics ---
+Modularity                 : 0.540773
+Coverage                   : 0.693789
+Performance                : 0.815863
+Mean Conductance           : 0.238685
+
+--- Statistical Validation ---
+Bootstrap 95% CI           : [0.908386, 1.021483]
+Permutation p-value        : 0.790000
+Verdict                    : POSSIBLE ECHO CHAMBER (ECR < threshold, but p >= 0.05)

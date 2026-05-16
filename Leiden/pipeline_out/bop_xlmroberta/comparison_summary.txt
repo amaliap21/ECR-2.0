@@ -1,0 +1,42 @@
+============================================================
+  ECR 2.0 — Leiden vs Infomap Comparison
+============================================================
+
+Metric                               Leiden      Infomap
+------------------------------------------------------
+Communities                             119           48
+Intra agreement                      0.7040       0.7070
+Inter agreement                      0.7343       0.7509
+ECR 2.0 ratio                        0.9587       0.9415
+Threshold                            0.9587       0.9415
+Classification                 Fenomena Echo Chamber Fenomena Non-Echo Chamber
+
+============================================================
+  Community Quality Validation
+============================================================
+
+Metric                               Leiden      Infomap
+------------------------------------------------------
+Modularity                           0.7863       0.6648
+Coverage                             0.8719       0.9789
+Performance                          0.9560       0.5653
+Conductance (mean)                   0.1042       0.0255
+
+NMI (Leiden <-> Infomap) : 0.5218
+
+============================================================
+  ECR Statistical Validation
+============================================================
+
+Metric                               Leiden      Infomap
+------------------------------------------------------
+Bootstrap CI low                     0.9424       0.8922
+Bootstrap CI high                    0.9770       1.0079
+Permutation p-value                  1.0000       0.8400
+
+Verdict Leiden  : NO ECHO CHAMBER (ECR >= threshold)
+Verdict Infomap: POSSIBLE ECHO CHAMBER (ECR < threshold, but p >= 0.05)
+
+Homophily (Pearson r): 0.1083
+Topic polarity       : positive_is_pro
+Resolution (Leiden)  : 4.164
