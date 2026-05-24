@@ -1,0 +1,22 @@
+ECR 2.0 Results — Consensus
+==================================================
+Intra-community agreement : 0.838448
+Inter-community agreement : 0.863418
+ECR 2.0 ratio             : 0.971080
+Homophily (Pearson r)      : 0.163505
+Threshold                  : 0.967975
+Classification             : Fenomena Echo Chamber
+Number of communities      : 175
+Resolution                 : 4.116
+Topic polarity             : positive_is_pro
+
+--- Community Quality Metrics ---
+Modularity                 : 0.341943
+Coverage                   : 0.334387
+Performance                : 0.982878
+Mean Conductance           : 0.322349
+
+--- Statistical Validation ---
+Bootstrap 95% CI           : [0.961793, 0.978280]
+Permutation p-value        : 1.000000
+Verdict                    : POSSIBLE ECHO CHAMBER (ECR >= threshold, but p >= 0.05)

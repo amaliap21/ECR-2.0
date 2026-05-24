@@ -22,6 +22,7 @@ from ecr2_pipeline import (
     estimate_user_leaning,
     calibrate_probabilities,
     detect_communities,
+    mlcc_consensus_partition,
     compute_homophily,
     simulate_diffusion_bias,
     summarize_diffusion_bias,
@@ -279,10 +280,14 @@ def run_pipeline(data_path, topic_name, outdir):
     log("\n[STEP 5] Calibration skipped.")
 
     # ── 6. Community detection ──
-    log("\n[STEP 6] Detecting communities (Leiden + Infomap)...")
+    log("\n[STEP 6] Detecting communities (Louvain + Leiden + Infomap + MLCC consensus)...")
     start = time.time()
     resolution = max(0.5, math.log10(G.number_of_nodes() + 1))
     log(f"  Auto resolution: {resolution:.3f}")
+
+    comms_louvain = detect_communities(G, method="louvain", random_state=SEED)
+    n_louvain = len(set(comms_louvain.values()))
+    log(f"  Louvain: {n_louvain} communities (baseline, Aidira 2025)")
 
     comms_leiden = detect_communities(G, method="leiden", resolution=resolution, random_state=SEED)
     n_leiden = len(set(comms_leiden.values()))
@@ -291,8 +296,31 @@ def run_pipeline(data_path, topic_name, outdir):
     comms_infomap = detect_communities(G, method="infomap", random_state=SEED)
     n_infomap = len(set(comms_infomap.values()))
     log(f"  Infomap: {n_infomap} communities")
+
+    # Multi-Level Consensus Clustering (Pho dkk., 2021) — 7-step framework
+    # over the {Leiden, Infomap} ensemble. Louvain is kept as a baseline
+    # comparison only, not part of the consensus ensemble.
+    log("  MLCC (Pho 2021): running 7-step consensus on {Leiden, Infomap}...")
+    comms_consensus = mlcc_consensus_partition(
+        G,
+        partitions=[comms_leiden, comms_infomap],
+        n_levels=3,
+        similarity_metric="cosine",
+        resolution=resolution,
+        random_state=SEED,
+        log_fn=log,
+    )
+    n_consensus = len(set(comms_consensus.values()))
+    log(f"  Consensus (MLCC): {n_consensus} communities")
     timings["Communities"] = time.time() - start
     log(f"[DONE] ({timings['Communities']:.2f}s)")
+
+    partitions_dict = {
+        "Louvain": comms_louvain,
+        "Leiden": comms_leiden,
+        "Infomap": comms_infomap,
+        "Consensus": comms_consensus,
+    }
 
     # ── 6b. Quality metrics ──
     log("\n[STEP 6b] Quality validation...")
@@ -302,7 +330,7 @@ def run_pipeline(data_path, topic_name, outdir):
 
     G_undirected = G.to_undirected() if G.is_directed() else G
     quality_metrics = {}
-    for label, comms in [("Leiden", comms_leiden), ("Infomap", comms_infomap)]:
+    for label, comms in partitions_dict.items():
         comm_sets = defaultdict(set)
         for user, cid in comms.items():
             if user in G_undirected:
@@ -335,13 +363,18 @@ def run_pipeline(data_path, topic_name, outdir):
 
     try:
         from sklearn.metrics import normalized_mutual_info_score
-        common = sorted(set(comms_leiden) & set(comms_infomap))
-        if len(common) > 10:
-            nmi = normalized_mutual_info_score(
-                [comms_leiden[u] for u in common],
-                [comms_infomap[u] for u in common])
-            quality_metrics["nmi"] = nmi
-            log(f"  NMI: {nmi:.4f}")
+        pair_labels = list(partitions_dict.keys())
+        for i in range(len(pair_labels)):
+            for j in range(i + 1, len(pair_labels)):
+                la_, lb_ = pair_labels[i], pair_labels[j]
+                ca, cb = partitions_dict[la_], partitions_dict[lb_]
+                common = sorted(set(ca) & set(cb))
+                if len(common) > 10:
+                    nmi = normalized_mutual_info_score(
+                        [ca[u] for u in common],
+                        [cb[u] for u in common])
+                    quality_metrics[f"nmi_{la_}_vs_{lb_}"] = nmi
+                    log(f"  NMI {la_} vs {lb_}: {nmi:.4f}")
     except ImportError:
         pass
     timings["Quality"] = time.time() - start
@@ -351,7 +384,7 @@ def run_pipeline(data_path, topic_name, outdir):
     log("\n[STEP 7] Computing ECR 2.0...")
     start = time.time()
     results = {}
-    for label, comms in [("Leiden", comms_leiden), ("Infomap", comms_infomap)]:
+    for label, comms in partitions_dict.items():
         ecr2 = compute_ecr2(G, df_users, comms)
         results[label] = {
             "ecr2": ecr2, "communities": comms,
@@ -419,14 +452,17 @@ def run_pipeline(data_path, topic_name, outdir):
         results[label]["p_value"] = p_value
 
         threshold = results[label]["threshold"]
-        if ecr_obs < threshold and p_value < 0.05 and ci_hi < threshold:
+        # Correct logic: ECR >= threshold means observed agreement structure
+        # exceeds null-model expectation, i.e., echo chamber present.
+        # (Cinelli et al., 2021; Amendola et al., 2024.)
+        if ecr_obs >= threshold and p_value < 0.05 and ci_lo >= threshold:
             verdict = "ECHO CHAMBER DETECTED (strong evidence)"
-        elif ecr_obs < threshold and p_value < 0.05:
-            verdict = "ECHO CHAMBER LIKELY (ECR < threshold, p < 0.05)"
-        elif ecr_obs < threshold:
-            verdict = "POSSIBLE ECHO CHAMBER (ECR < threshold, but p >= 0.05)"
+        elif ecr_obs >= threshold and p_value < 0.05:
+            verdict = "ECHO CHAMBER LIKELY (ECR >= threshold, p < 0.05)"
+        elif ecr_obs >= threshold:
+            verdict = "POSSIBLE ECHO CHAMBER (ECR >= threshold, but p >= 0.05)"
         else:
-            verdict = "NO ECHO CHAMBER (ECR >= threshold)"
+            verdict = "NO ECHO CHAMBER (ECR < threshold)"
         results[label]["verdict"] = verdict
         log(f"  [{label}] CI=[{ci_lo:.4f},{ci_hi:.4f}] p={p_value:.4f} -> {verdict}")
     timings["Validation"] = time.time() - start
@@ -520,24 +556,63 @@ def run_pipeline(data_path, topic_name, outdir):
     ic_summary.to_csv(os.path.join(outdir, "diffusion_summary.csv"), index=False)
 
     summary_path = os.path.join(outdir, "comparison_summary.txt")
-    with open(summary_path, "w", encoding="utf-8") as f:
-        f.write(f"{'='*60}\n  ECR 2.0 — Leiden vs Infomap Comparison\n{'='*60}\n\n")
-        f.write(f"{'Metric':<30} {'Leiden':>12} {'Infomap':>12}\n{'-'*54}\n")
-        f.write(f"{'Communities':<30} {results['Leiden']['n']:>12} {results['Infomap']['n']:>12}\n")
-        f.write(f"{'Intra agreement':<30} {results['Leiden']['ecr2'].intra:>12.4f} {results['Infomap']['ecr2'].intra:>12.4f}\n")
-        f.write(f"{'Inter agreement':<30} {results['Leiden']['ecr2'].inter:>12.4f} {results['Infomap']['ecr2'].inter:>12.4f}\n")
-        f.write(f"{'ECR 2.0 ratio':<30} {results['Leiden']['ecr2'].ratio:>12.4f} {results['Infomap']['ecr2'].ratio:>12.4f}\n")
-        f.write(f"{'Threshold':<30} {results['Leiden']['threshold']:>12.4f} {results['Infomap']['threshold']:>12.4f}\n")
-        f.write(f"{'Classification':<30} {results['Leiden']['classification']:>12} {results['Infomap']['classification']:>12}\n")
-        f.write(f"\nHomophily (Pearson r): {homo['pearson_r']:.4f}\n")
-        f.write(f"Topic polarity       : {TOPIC_POLARITY}\n")
-        f.write(f"Resolution (Leiden)  : {resolution:.3f}\n")
+    labels_out = list(results.keys())
+    col_w = 14
 
-        f.write(f"\n{'='*60}\n  Statistical Validation\n{'='*60}\n\n")
-        for label in results:
-            bci = results[label].get("bootstrap_ci", (0, 0))
-            f.write(f"[{label}] CI=[{bci[0]:.4f},{bci[1]:.4f}] p={results[label].get('p_value',1):.4f}\n")
-            f.write(f"  Verdict: {results[label].get('verdict','N/A')}\n")
+    def _row(name, values):
+        cells = "".join(f"{v:>{col_w}}" for v in values)
+        return f"{name:<24}{cells}\n"
+
+    def _row_num(name, values, fmt=".4f"):
+        cells = "".join(f"{v:>{col_w}{fmt}}" for v in values)
+        return f"{name:<24}{cells}\n"
+
+    with open(summary_path, "w", encoding="utf-8") as f:
+        f.write(f"{'='*70}\n  ECR 2.0 — Multi-Algorithm Comparison (Leiden, Infomap, MLCC)\n{'='*70}\n\n")
+        f.write(_row("Metric", labels_out))
+        f.write("-" * (24 + col_w * len(labels_out)) + "\n")
+        f.write(_row("Communities", [results[l]["n"] for l in labels_out]))
+        f.write(_row_num("Intra agreement", [results[l]["ecr2"].intra for l in labels_out]))
+        f.write(_row_num("Inter agreement", [results[l]["ecr2"].inter for l in labels_out]))
+        f.write(_row_num("ECR 2.0 ratio", [results[l]["ecr2"].ratio for l in labels_out]))
+        f.write(_row_num("Threshold", [results[l]["threshold"] for l in labels_out]))
+        f.write(_row("Classification", [results[l]["classification"] for l in labels_out]))
+
+        f.write(f"\n{'='*70}\n  Community Quality Validation\n{'='*70}\n\n")
+        f.write(_row("Metric", labels_out))
+        f.write("-" * (24 + col_w * len(labels_out)) + "\n")
+        f.write(_row_num("Modularity", [results[l]["quality"]["modularity"] for l in labels_out]))
+        f.write(_row_num("Coverage", [results[l]["quality"]["coverage"] for l in labels_out]))
+        f.write(_row_num("Performance", [results[l]["quality"]["performance"] for l in labels_out]))
+        f.write(_row_num("Conductance (mean)", [results[l]["quality"]["mean_conductance"] for l in labels_out]))
+
+        f.write("\n")
+        for key, val in quality_metrics.items():
+            if key.startswith("nmi_"):
+                pair = key[4:].replace("_vs_", " <-> ")
+                f.write(f"NMI ({pair}) : {val:.4f}\n")
+
+        f.write(f"\n{'='*70}\n  ECR Statistical Validation\n{'='*70}\n\n")
+        f.write(_row("Metric", labels_out))
+        f.write("-" * (24 + col_w * len(labels_out)) + "\n")
+        f.write(_row_num("Bootstrap CI low",
+                         [results[l].get("bootstrap_ci", (float('nan'), float('nan')))[0]
+                          for l in labels_out]))
+        f.write(_row_num("Bootstrap CI high",
+                         [results[l].get("bootstrap_ci", (float('nan'), float('nan')))[1]
+                          for l in labels_out]))
+        f.write(_row_num("Permutation p-value",
+                         [results[l].get("p_value", float('nan')) for l in labels_out]))
+
+        f.write("\n")
+        for l in labels_out:
+            f.write(f"Verdict {l:<9}: {results[l].get('verdict', 'N/A')}\n")
+
+        f.write(f"\nHomophily (Pearson r) : {homo['pearson_r']:.4f}\n")
+        f.write(f"Topic polarity        : {TOPIC_POLARITY}\n")
+        f.write(f"Resolution (Leiden)   : {resolution:.3f}\n")
+        f.write(f"MLCC: 7-step (Pho dkk., 2021), ensemble={{Leiden, Infomap}}, "
+                f"L=3 levels, cosine similarity\n")
 
     timings["Save"] = time.time() - start
     log(f"[DONE] ({timings['Save']:.2f}s)")

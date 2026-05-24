@@ -1,0 +1,46 @@
+==================================================================
+  ECR 2.0 — Multi-Algorithm Comparison (Leiden, Infomap, MLCC)
+==================================================================
+
+Metric                          Leiden       Infomap     Consensus
+------------------------------------------------------------------
+Communities                       2138          3663          2208
+Intra agreement                 0.8535        0.8571        0.8535
+Inter agreement                 0.8808        0.8808        0.8807
+ECR 2.0 ratio                   0.9690        0.9731        0.9691
+Threshold                       0.9896        0.9935        0.9896
+Classification          Fenomena Non-Echo ChamberFenomena Non-Echo ChamberFenomena Non-Echo Chamber
+
+==================================================================
+  Community Quality Validation
+==================================================================
+
+Metric                          Leiden       Infomap     Consensus
+------------------------------------------------------------------
+Modularity                      0.6344        0.6401        0.6339
+Coverage                        0.6192        0.7123        0.6182
+Performance                     0.9859        0.9244        0.9861
+Conductance (mean)              0.0308        0.0522        0.0352
+
+NMI (Leiden <-> Infomap) : 0.6789
+NMI (Leiden <-> Consensus) : 0.9875
+NMI (Infomap <-> Consensus) : 0.6861
+
+==================================================================
+  ECR Statistical Validation
+==================================================================
+
+Metric                          Leiden       Infomap     Consensus
+------------------------------------------------------------------
+Bootstrap CI low                0.9589        0.9624        0.9590
+Bootstrap CI high               0.9846        0.9902        0.9847
+Permutation p-value             1.0000        1.0000        1.0000
+
+Verdict Leiden    : NO ECHO CHAMBER (ECR < threshold)
+Verdict Infomap   : NO ECHO CHAMBER (ECR < threshold)
+Verdict Consensus : NO ECHO CHAMBER (ECR < threshold)
+
+Homophily (Pearson r) : 0.3928
+Topic polarity        : negative_is_pro
+Resolution (Leiden)   : 5.221
+MLCC: 7-step (Pho dkk., 2021), ensemble={Leiden, Infomap}, L=3 levels, cosine similarity

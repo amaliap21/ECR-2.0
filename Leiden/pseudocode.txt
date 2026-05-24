@@ -60,10 +60,112 @@ FUNCTION leiden_communities(G, resolution=1.0):
         RETURN leiden_communities(G_agg, resolution)
     RETURN partition
 
+4b. Community Detection (Infomap)
+
+FUNCTION infomap_communities(G):
+    // Minimize the Map Equation L(M) over modular description lengths
+    // using random walks on G (directed flow when G is directed).
+    flags ← "--silent --seed <s>"
+    IF G is directed: flags ← flags + " --directed"
+    im ← new Infomap(flags)
+    FOR each edge (u, v, w) IN G.edges:
+        im.add_link(u, v, w)
+    im.run()
+    partition ← {u → module_id(u) : u IN G.nodes}
+    RETURN partition
+
+4c. Multi-Level Consensus Clustering (MLCC, Pho dkk., 2021)
+
+FUNCTION mlcc_consensus(G, partitions, L=3, similarity="cosine"):
+    // INPUT  : G          = interaction graph (N nodes);
+    //          partitions = [π_1, …, π_B] ensemble of partitions of G.nodes
+    //                       (e.g. π_1 = leiden_communities(G),
+    //                             π_2 = infomap_communities(G));
+    //          L          = number of transition levels;
+    //          similarity ∈ {"cosine", "euclidean"}.
+    // OUTPUT : a single consensus partition of G.nodes.
+
+    // ── Step 1: Ensemble preparation ─────────────────────────────────
+    // Re-label clusters across partitions to a global index 0..K-1.
+    global_id     ← {}                             // (b, local_c) → g
+    cluster_size  ← [ ]                            // size of each global cluster
+    node_cluster  ← matrix[B × N] of NIL           // node → global cluster per partition
+    FOR b IN 0..B-1:
+        FOR each (node u, local_cluster c) IN partitions[b]:
+            IF (b, c) ∉ global_id:
+                global_id[(b, c)] ← |cluster_size|
+                cluster_size.append(0)
+            g ← global_id[(b, c)]
+            node_cluster[b][index(u)] ← g
+            cluster_size[g] ← cluster_size[g] + 1
+    K ← |cluster_size|
+
+    // ── Step 2: Cluster graph G(C) with SCCS weights ────────────────
+    // Within-partition overlap = 0 (partitions are disjoint).
+    intersect ← {}                                 // (g_i, g_j) → |c_i ∩ c_j|
+    FOR each node index i IN 0..N-1:
+        FOR each pair (b1 < b2):
+            g1 ← node_cluster[b1][i];  g2 ← node_cluster[b2][i]
+            IF g1 ≠ NIL AND g2 ≠ NIL:
+                key ← sort(g1, g2)
+                intersect[key] ← intersect[key] + 1
+
+    W ← zero_matrix[K × K]
+    FOR each ((g_i, g_j), inter) IN intersect:
+        sz_i ← cluster_size[g_i];  sz_j ← cluster_size[g_j]
+        SCCS ← 1/2 + inter / max(sz_i, sz_j) − (sz_i · sz_j) / (2 · N²)
+        IF SCCS > 0:
+            W[g_i, g_j] ← SCCS;  W[g_j, g_i] ← SCCS
+
+    // ── Step 3: Multi-level transition probability ──────────────────
+    // Row-normalize W → P¹; then P^l = (P¹)^l for l = 2..L.
+    P_1 ← row_normalize(W)
+    P_levels ← [P_1]
+    P_curr   ← P_1
+    FOR l IN 2..L:
+        P_curr ← P_curr · P_1
+        P_levels.append(P_curr)
+
+    // ── Step 4: Multi-level feature space ───────────────────────────
+    F ← concat_columns(P_levels)                   // shape K × (K · L)
+
+    // ── Step 5: Cluster-cluster similarity matrix S = 1 − D(F) ──────
+    IF similarity == "cosine":
+        F_norm ← normalize_rows(F)
+        S ← (F_norm · F_normᵀ + 1) / 2             // rescale [-1, 1] → [0, 1]
+    ELSE:                                          // euclidean
+        D ← pairwise_euclidean(F)
+        S ← 1 − D / max(D)
+
+    // ── Step 6: Point-point similarity M (sparse over G.edges) ──────
+    // M(u, v) = (1/B) · Σ_b S(π_b(u), π_b(v))
+    H ← empty_undirected_graph();  H.add_nodes(G.nodes)
+    FOR each edge (u, v, w_uv) IN G.edges:
+        IF u == v: CONTINUE
+        sims ← [ ]
+        FOR b IN 0..B-1:
+            g_u ← node_cluster[b][index(u)]
+            g_v ← node_cluster[b][index(v)]
+            IF g_u ≠ NIL AND g_v ≠ NIL:
+                IF g_u == g_v: sims.append(1.0)
+                ELSE         : sims.append(S[g_u, g_v])
+        IF sims is empty: CONTINUE
+        m_uv ← mean(sims)
+        IF m_uv ≤ 0: CONTINUE
+        H.add_edge(u, v, weight = w_uv · m_uv)     // accumulate if exists
+
+    // ── Step 7: Secondary clustering on consensus weighted graph H ──
+    // Pho dkk. (2021) propose agglomerative hierarchical clustering with
+    // complete linkage on M. For large G (N ≳ 10⁵) this is infeasible,
+    // so Leiden is applied on H instead; the multi-level signal of
+    // steps 1–6 is preserved through the consensus edge weights.
+    consensus ← leiden_communities(H, resolution=ρ)
+    RETURN consensus
+
 5. Homophily Measurement
 
 FUNCTION homophily(G, attribute):   // attribute = sentiment or community
-    same ← 0
+    same  ← 0
     total ← 0
     FOR each edge (u,v) IN G.edges:
         total ← total + 1
@@ -79,9 +181,9 @@ FUNCTION homophily(G, attribute):   // attribute = sentiment or community
 6. Diffusion Bias (Independent Cascade)
 
 FUNCTION diffusion_ic(G, seeds, p_base, bias_fn):
-    active ← set(seeds)
-    newly_active ← set(seeds)
-    cascade_log ← []
+    active        ← set(seeds)
+    newly_active  ← set(seeds)
+    cascade_log   ← [ ]
 
     WHILE newly_active not empty:
         next_active ← empty_set
@@ -92,7 +194,7 @@ FUNCTION diffusion_ic(G, seeds, p_base, bias_fn):
                 IF random() < p:
                     next_active.add(v)
                     cascade_log.append((u, v, step))
-        active ← active ∪ next_active
+        active       ← active ∪ next_active
         newly_active ← next_active
 
     RETURN active, cascade_log
@@ -105,20 +207,38 @@ FUNCTION bias_fn(u, v):
 
 7. Echo Chamber Ratio (ECR 2.0)
 
-FUNCTION compute_ECR(G, communities, sentiments):
-    ecr_scores ← {}
-    FOR each community C IN communities:
-        internal_edges ← edges(u,v) WHERE u,v ∈ C
-        external_edges ← edges(u,v) WHERE u ∈ C XOR v ∈ C
+FUNCTION compute_ECR(G, communities, leaning):
+    // leaning : user → lean_scalar ∈ [-1, +1]
+    // Agreement kernel a(u,v) = 1 − |leaning[u] − leaning[v]| / 2  ∈ [0, 1].
+    intra_vals ← [ ]
+    inter_vals ← [ ]
+    FOR each edge (u, v) IN G.edges:
+        IF u ∉ leaning OR v ∉ leaning: CONTINUE
+        a ← 1 − |leaning[u] − leaning[v]| / 2
+        IF communities[u] == communities[v]:
+            intra_vals.append(a)
+        ELSE:
+            inter_vals.append(a)
+    intra ← mean(intra_vals)
+    inter ← mean(inter_vals)
+    ratio ← intra / inter                          // ECR 2.0
+    RETURN {intra, inter, ratio}
 
-        // Structural insularity
-        insularity ← |internal_edges| / (|internal_edges| + |external_edges|)
+7b. ECR Threshold via Null Model
 
-        // Sentiment polarization within C
-        p_pos ← fraction(sentiment == positive, C)
-        p_neg ← fraction(sentiment == negative, C)
-        polarization ← |p_pos − p_neg|
-    RETURN ecr_scores
+FUNCTION estimate_threshold(G, leaning, communities, n_samples=100):
+    null_ratios ← [ ]
+    FOR i IN 1..n_samples:
+        G_rand ← directed_edge_swap(G)             // preserve degree sequence
+        r      ← compute_ECR(G_rand, communities, leaning).ratio
+        IF r is finite AND r > 0:
+            null_ratios.append(r)
+    τ ← mean(null_ratios) + std(null_ratios)
+    RETURN τ
+
+FUNCTION classify(ratio, τ):
+    IF ratio ≥ τ: RETURN "Fenomena Echo Chamber"
+    ELSE        : RETURN "Fenomena Non-Echo Chamber"
 
 8. Main Pipeline
 
@@ -126,10 +246,25 @@ FUNCTION ecr2_pipeline(raw_csv):
     tweets    ← preprocess(raw_csv)
     tweets    ← classify_sentiment(tweets, finetuned_model)
     G         ← build_graph(tweets)
-    comms     ← leiden_communities(G)
+    leaning   ← estimate_user_leaning(tweets)      // [-1, +1] per user
+
+    // Multi-algorithm community detection + MLCC consensus
+    π_leiden    ← leiden_communities(G, resolution=ρ)
+    π_infomap   ← infomap_communities(G)
+    π_consensus ← mlcc_consensus(G, [π_leiden, π_infomap], L=3, similarity="cosine")
+    partitions  ← {Leiden: π_leiden, Infomap: π_infomap, Consensus: π_consensus}
+
     h_sent    ← homophily(G, sentiment)
     h_comm    ← homophily(G, community)
     cascades  ← diffusion_ic(G, seeds, p_base=0.05, bias_fn)
-    ecr       ← compute_ECR(G, comms, sentiment)
-    RETURN {graph: G, communities: comms, homophily: (h_sent, h_comm),
-            diffusion: cascades, ecr: ecr}
+
+    results ← {}
+    FOR each (label, π) IN partitions:
+        ecr ← compute_ECR(G, π, leaning)
+        τ   ← estimate_threshold(G, leaning, π, n_samples=100)
+        results[label] ← {ecr: ecr, threshold: τ,
+                          classification: classify(ecr.ratio, τ)}
+
+    RETURN {graph: G, partitions: partitions,
+            homophily: (h_sent, h_comm), diffusion: cascades,
+            results: results}

@@ -212,6 +212,9 @@ __marimo__/
 finetuned_sentiment/checkpoint-*/
 finetuned_sentiment/phase1/
 finetuned_sentiment/training_args.bin
+finetuned_sentiment_cardiff_xlmroberta/checkpoint-*/
+finetuned_sentiment_cardiff_xlmroberta/phase1/
+finetuned_sentiment_cardiff_xlmroberta/training_args.bin
 
 # Large pipeline output files (>100MB)
 *.gml

@@ -1507,6 +1507,21 @@ def detect_communities(
             comms[node_list[node.node_id]] = int(node.module_id)
         return comms
 
+    if method.lower() == "louvain" and _HAS_LEIDEN:
+        # Louvain via igraph's community_multilevel (Blondel et al., 2008).
+        # We run on an undirected projection because Louvain modularity is
+        # defined for undirected graphs; weights from G are preserved.
+        H = G.to_undirected() if G.is_directed() else G
+        g = _nx_to_igraph(H)
+        weights = g.es["weight"] if "weight" in g.es.attributes() else None
+        # igraph's community_multilevel doesn't take a seed; ensure determinism
+        # by seeding via the system RNG (Louvain's order-dependence is small).
+        import random as _random
+        _random.seed(random_state)
+        clusters = g.community_multilevel(weights=weights)
+        comms = {g.vs[i]["name"]: int(c) for i, c in enumerate(clusters.membership)}
+        return comms
+
     # Fallback: greedy modularity (undirected projection)
     H = G.to_undirected()
     try:
@@ -1520,6 +1535,211 @@ def detect_communities(
     except Exception:
         # last resort: each node its own community
         return {u:i for i,u in enumerate(nodes)}
+
+
+def mlcc_consensus_partition(
+    G: nx.Graph | nx.DiGraph,
+    partitions: List[Dict[str, int]],
+    n_levels: int = 3,
+    similarity_metric: str = "cosine",
+    resolution: float = 1.0,
+    random_state: int = 42,
+    max_dense_K: int = 2500,
+    log_fn=None,
+) -> Dict[str, int]:
+    """Multi-Level Consensus Clustering (MLCC), following Pho dkk. (2021).
+
+    Implements the 7-step framework described in the thesis (BAB II.3):
+
+      1. Ensemble: use the provided B partitions {pi_1, ..., pi_B} directly
+         (e.g., Leiden + Infomap on the same graph G).
+      2. Cluster graph G(C): nodes = every (partition, local_cluster) pair;
+         edges weighted by Simple Cluster-Cluster Similarity (SCCS):
+            SCCS(c_i, c_j) = 1/2 + |c_i ∩ c_j| / max(|c_i|, |c_j|)
+                              - (|c_i| * |c_j|) / (2 * N^2)
+      3. Multi-level transition probability matrices P^1, P^2, ..., P^L,
+         where P^1 is the row-stochastic normalization of the SCCS-weighted
+         adjacency W of G(C), and P^l = (P^1)^l.
+      4. Multi-level feature space F = [P^1 | P^2 | ... | P^L]. Each cluster
+         is described by its transition probabilities across all L levels.
+      5. Cluster-cluster similarity matrix S derived from pairwise distances
+         between rows of F (cosine or Euclidean), rescaled to [0, 1].
+      6. Point-point similarity M, computed sparsely over edges (u, v) of G:
+            M(u, v) = (1/B) * sum_b S(pi_b(u), pi_b(v))
+      7. Secondary clustering. Pho dkk. (2021) propose agglomerative
+         hierarchical clustering with complete linkage on M. For graphs of
+         O(10^5)-O(10^6) nodes this is computationally infeasible, so the
+         consensus partition is obtained by running Leiden on the weighted
+         consensus graph H where w_H(u, v) = w_G(u, v) * M(u, v). The
+         multi-level similarities from steps 1-5 are preserved as edge
+         weights, so the resulting communities reflect the same MLCC
+         consensus signal that hierarchical clustering would extract.
+
+    For K = total clusters across all input partitions, the dense MLCC path
+    is taken when K <= max_dense_K. Otherwise a one-level SCCS fallback is
+    used (steps 3-5 are skipped; S = SCCS directly).
+
+    Reference:
+        Pho dkk. (2021). Multi-level consensus clustering.
+        (As cited in the project's thesis, BAB II.3.)
+    """
+    log = log_fn if log_fn is not None else (lambda _msg: None)
+
+    if not partitions:
+        raise ValueError("partitions must contain at least one partition dict")
+
+    nodes = list(G.nodes())
+    N = len(nodes)
+    if N == 0:
+        return {}
+    node_to_idx = {u: i for i, u in enumerate(nodes)}
+    B = len(partitions)
+
+    # Step 1: ensemble preparation, global cluster indexing
+    global_id: Dict[Tuple[int, int], int] = {}
+    cluster_size: List[int] = []
+    node_global_cluster: List[List[Optional[int]]] = [
+        [None] * N for _ in range(B)
+    ]
+
+    for b, partition in enumerate(partitions):
+        local_to_global: Dict[int, int] = {}
+        for node, lc in partition.items():
+            i = node_to_idx.get(node)
+            if i is None:
+                continue
+            g = local_to_global.get(lc)
+            if g is None:
+                g = len(cluster_size)
+                local_to_global[lc] = g
+                global_id[(b, lc)] = g
+                cluster_size.append(0)
+            node_global_cluster[b][i] = g
+            cluster_size[g] += 1
+
+    K = len(cluster_size)
+    log(f"    [MLCC] B={B} partitions, K={K} clusters total, N={N} nodes")
+    if K == 0:
+        return dict(partitions[0])
+
+    # Step 2: compute cluster-cluster overlaps via node co-occurrence
+    # (within-partition overlap = 0 because partitions are disjoint)
+    intersect: Dict[Tuple[int, int], int] = {}
+    for i in range(N):
+        gs = [node_global_cluster[b][i] for b in range(B)]
+        for b1 in range(B):
+            g1 = gs[b1]
+            if g1 is None:
+                continue
+            for b2 in range(b1 + 1, B):
+                g2 = gs[b2]
+                if g2 is None:
+                    continue
+                key = (g1, g2) if g1 < g2 else (g2, g1)
+                intersect[key] = intersect.get(key, 0) + 1
+
+    N_sq2 = 2.0 * N * N
+
+    use_dense = K <= max_dense_K
+    sccs_sparse: Dict[Tuple[int, int], float] = {}
+    S_dense = None
+
+    if use_dense:
+        log(f"    [MLCC] Dense MLCC path (K={K} <= {max_dense_K})")
+        W = np.zeros((K, K), dtype=np.float64)
+        for (gi, gj), inter in intersect.items():
+            sz_i = cluster_size[gi]
+            sz_j = cluster_size[gj]
+            sccs = 0.5 + inter / max(sz_i, sz_j) - (sz_i * sz_j) / N_sq2
+            if sccs <= 0:
+                continue
+            W[gi, gj] = sccs
+            W[gj, gi] = sccs
+
+        # Step 3: multi-level transition probability
+        row_sum = W.sum(axis=1, keepdims=True)
+        row_sum[row_sum == 0] = 1.0
+        P1 = W / row_sum
+
+        P_levels = [P1]
+        P_curr = P1
+        for _ in range(max(0, n_levels - 1)):
+            P_curr = P_curr @ P1
+            P_levels.append(P_curr)
+
+        # Step 4: multi-level feature space
+        F = np.concatenate(P_levels, axis=1)
+
+        # Step 5: cluster-cluster similarity matrix S
+        if similarity_metric == "cosine":
+            norms = np.linalg.norm(F, axis=1, keepdims=True)
+            norms[norms == 0] = 1.0
+            F_norm = F / norms
+            S = F_norm @ F_norm.T
+            S = np.clip((S + 1.0) / 2.0, 0.0, 1.0)
+        else:
+            from scipy.spatial.distance import cdist  # type: ignore
+            D = cdist(F, F, metric="euclidean")
+            D_max = float(D.max())
+            S = 1.0 - D / D_max if D_max > 0 else np.ones((K, K))
+        S_dense = S
+        log(f"    [MLCC] S computed: shape={S.shape}, "
+            f"mean={float(S.mean()):.4f}")
+    else:
+        log(f"    [MLCC] Sparse fallback (K={K} > {max_dense_K}): "
+            f"using SCCS directly, skipping P^l mixing")
+        for (gi, gj), inter in intersect.items():
+            sz_i = cluster_size[gi]
+            sz_j = cluster_size[gj]
+            sccs = 0.5 + inter / max(sz_i, sz_j) - (sz_i * sz_j) / N_sq2
+            if sccs <= 0:
+                continue
+            sccs_sparse[(gi, gj)] = sccs
+            sccs_sparse[(gj, gi)] = sccs
+
+    # Step 6: point-point similarity matrix M (sparse over edges of G)
+    H = nx.Graph()
+    H.add_nodes_from(nodes)
+
+    for u, v, d in G.edges(data=True):
+        if u == v:
+            continue
+        iu = node_to_idx[u]
+        iv = node_to_idx[v]
+        sims = []
+        for b in range(B):
+            gu = node_global_cluster[b][iu]
+            gv = node_global_cluster[b][iv]
+            if gu is None or gv is None:
+                continue
+            if gu == gv:
+                sims.append(1.0)
+            elif use_dense:
+                sims.append(float(S_dense[gu, gv]))
+            else:
+                sims.append(sccs_sparse.get((gu, gv), 0.0))
+        if not sims:
+            continue
+        m_uv = float(np.mean(sims))
+        if m_uv <= 0:
+            continue
+        w_orig = float(d.get("weight", 1.0))
+        consensus_w = w_orig * m_uv
+        if H.has_edge(u, v):
+            H[u][v]["weight"] += consensus_w
+        else:
+            H.add_edge(u, v, weight=consensus_w)
+
+    log(f"    [MLCC] Consensus graph H: "
+        f"{H.number_of_nodes()} nodes, {H.number_of_edges()} edges")
+
+    # Step 7: secondary clustering on consensus weighted graph
+    if H.number_of_edges() < 5:
+        return dict(partitions[0])
+
+    return detect_communities(
+        H, method="leiden", resolution=resolution, random_state=random_state
+    )
 
 
 # 4) Homophily

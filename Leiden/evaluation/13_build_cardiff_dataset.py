@@ -27,6 +27,9 @@ SOURCES = {
     "boikot":          os.path.join(ROOT, "total_data_cleaned_mcd.csv"),
     "vaksin":          os.path.join(ROOT, "total_data_cleaned_vaksin.csv"),
     "indonesia_gelap": os.path.join(ROOT, "total_data_cleaned_indonesia_gelap.csv"),
+    "korupsi": os.path.join(ROOT, "total_data_cleaned_korupsi.csv"),
+    "ijazah": os.path.join(ROOT, "total_data_cleaned_ijazah.csv"),
+    "mbg": os.path.join(ROOT, "total_data_cleaned_mbg.csv"),
 }
 
 VALID = {"negative", "neutral", "positive"}
