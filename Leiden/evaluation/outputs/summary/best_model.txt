@@ -1,7 +1,7 @@
 Best model by overall macro-F1: GPT-5.4 mini
-  split                    model   n  accuracy  macro_f1   f1_neg   f1_neu   f1_pos  precision   recall
-overall             GPT-5.4 mini 180  0.522222  0.515448 0.598540 0.487805 0.460000   0.516113 0.519258
-overall Fine-tuned (XLM-RoBERTa) 180  0.500000  0.487208 0.508197 0.557823 0.395604   0.491851 0.487887
-overall  IndoBERT API (No Limit) 180  0.466667  0.449908 0.456140 0.541935 0.351648   0.459408 0.453215
-overall     RoBERTa API (cached) 180  0.411111  0.410697 0.403226 0.425197 0.403670   0.411111 0.414197
-overall                 IndoBERT 180  0.327778  0.313201 0.314050 0.408163 0.217391   0.313630 0.316239
+  split                    model     n  n_scored  accuracy  macro_f1   f1_neg   f1_neu   f1_pos  precision   recall
+overall             GPT-5.4 mini 30000     30000  0.622600  0.503440 0.713047 0.542555 0.254717   0.507029 0.514247
+overall Fine-tuned (XLM-RoBERTa) 30000     30000  0.615800  0.456859 0.678923 0.594606 0.097048   0.458718 0.455828
+overall  IndoBERT API (No Limit) 30000     30000  0.582667  0.437923 0.613235 0.597727 0.102807   0.446161 0.441223
+overall                 IndoBERT 30000     30000  0.560067  0.405967 0.628030 0.528901 0.060971   0.406724 0.406252
+overall     RoBERTa API (cached) 30000     30000  0.422567  0.327293 0.506191 0.395893 0.079795   0.338218 0.331607

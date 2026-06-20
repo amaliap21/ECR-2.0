@@ -2,6 +2,10 @@
 
 FUNCTION preprocess(raw_tweets):
     tweets ← load_csv(raw_tweets)
+
+    // Saring akun bot: buang baris yang from_username mengandung kata "bot"
+    tweets ← drop_rows(tweets WHERE contains(lowercase(tweet.from_username), "bot"))
+
     FOR each tweet IN tweets:
         text ← lowercase(tweet.text)
         text ← remove_urls(text)
@@ -11,8 +15,14 @@ FUNCTION preprocess(raw_tweets):
         text ← normalize_slang(text)           // Indonesian slang → baku
         text ← remove_stopwords(text)
         tweet.clean_text ← text
-    tweets ← drop_duplicates(tweets, key=clean_text)
-    tweets ← drop_empty(tweets)
+
+    tweets ← drop_duplicates(tweets, key=clean_text)   // hapus duplikasi
+    tweets ← drop_empty(tweets, key=clean_text)        // buang clean_text kosong
+
+    // Pertahankan kolom interaksi (reply, retweet, mention) untuk pembangunan graf
+    tweets ← keep_columns(tweets, [user, clean_text,
+                                   sentiment_fields,
+                                   reply_to_user, retweet_from_user, mentioned])
     RETURN tweets
 
 2. Sentiment Classification (fine-tuned model)
@@ -268,3 +278,92 @@ FUNCTION ecr2_pipeline(raw_csv):
     RETURN {graph: G, partitions: partitions,
             homophily: (h_sent, h_comm), diffusion: cascades,
             results: results}
+
+9. Analisis Komunitas Pro vs Kontra dan Pergeseran Topik
+
+9a. Klasifikasi Komunitas Pro vs Kontra
+
+FUNCTION classify_communities(G, leaning, communities, θ=0.2):
+    // leaning : user → lean_scalar ∈ [-1, +1]
+    comm_members ← group users BY communities
+    results ← [ ]
+    FOR each (community c, members) IN comm_members:
+        L ← [ leaning[u] FOR u IN members IF leaning[u] is defined ]
+        IF L is empty: CONTINUE
+        avg ← mean(L);  std ← std(L);  median ← median(L)
+        n_pro     ← count(x IN L WHERE x >  θ)
+        n_contra  ← count(x IN L WHERE x < -θ)
+        n_neutral ← |L| − n_pro − n_contra
+        IF   avg >  θ: stance ← "pro"
+        ELIF avg < -θ: stance ← "contra"
+        ELSE         : stance ← "neutral"
+        internal ← count edges (u→v) WHERE u ∈ members AND v ∈ members
+        external ← count edges (u→v) WHERE u ∈ members AND v ∉ members
+        results.append({community: c, size: |members|, stance: stance,
+                        avg_leaning: avg, std_leaning: std, median_leaning: median,
+                        pct_pro: n_pro/|L|, pct_contra: n_contra/|L|,
+                        pct_neutral: n_neutral/|L|,
+                        internal_edges: internal, external_edges: external})
+    RETURN results
+
+9b. Pergeseran Sentimen per Pengguna
+
+FUNCTION sentiment_shift(tweets, θ=0.2):
+    df_shifts ← [ ]
+    FOR each user u WITH posts P_u (terurut waktu):
+        IF |P_u| < 2: CONTINUE
+        half  ← |P_u| / 2
+        early ← P_u[0 : half];   late ← P_u[half : ]
+        e ← mean(early.p_pos) − mean(early.p_neg)    // leaning paruh awal
+        l ← mean(late.p_pos)  − mean(late.p_neg)     // leaning paruh akhir
+        e ← clip(e, -1, 1);  l ← clip(l, -1, 1)
+        df_shifts.append({user: u, early: e, late: l, magnitude: |l − e|})
+
+    FOR each row (e, l) IN df_shifts:                // klasifikasi jenis pergeseran
+        IF   |e| < θ AND |l| < θ : type ← "Stable"
+        ELIF e >  θ AND l < -θ   : type ← "Pro -> Contra"
+        ELIF e < -θ AND l >  θ   : type ← "Contra -> Pro"
+        ELIF |l| > |e|           : type ← "Polarized"
+        ELSE                     : type ← "Moderated"
+        row.shift_type ← type
+    RETURN df_shifts
+
+10. Penentuan Isu Krisis
+
+FUNCTION minmax(values):
+    RETURN (values − min(values)) / (max(values) − min(values))
+
+FUNCTION crisis_index(topics, θ1=0.45, θ2=0.65, N=5000):
+    // ── Tahap 1: indikator mentah tiap topik ──────────────────────────
+    FOR each topic c IN topics:
+        I_sev[c]  ← mean_{u ∈ U_c} p_neg[u]                  // (3.a) negativitas
+        I_int[c]  ← mean_{u ∈ U_c} |leaning[u]|              // (3.b) intensitas
+        I_dif[c]  ← min(|cohens_d[c]| / 0.8, 1)              // (3.c) bias difusi
+        vol[c]    ← log10(|U_c|)                             // utk (3.d) virality
+        pol[c]    ← |homophily[c]|                           // utk (3.e) polarisasi
+        I_echo[c] ← 1 IF ECR[c] > threshold[c] ELSE 0        // (3.f) echo chamber
+
+    // ── Tahap 2: normalisasi min–maks lintas topik (OECD §5, §5.1) ────
+    I_vir ← minmax(vol)                                      // (3.d) log lalu min–maks
+    I_pol ← minmax(pol)                                      // (3.e)
+    // I_sev, I_int, I_dif, I_echo sudah pada [0,1]
+
+    // ── Tahap 3: agregasi equal weighting (OECD §6) ───────────────────
+    K ← {sev, int, dif, vir, pol, echo};   w_k ← 1/|K|       // pembobotan setara
+    FOR each topic c:
+        CrisisIndex[c] ← Σ_{k ∈ K} w_k · Î_k[c]              // (3.h)
+        // ── Tahap 4: klasifikasi (3.i) ──
+        IF   CrisisIndex[c] ≥ θ2 : category[c] ← "Krisis Tinggi"
+        ELIF CrisisIndex[c] ≥ θ1 : category[c] ← "Krisis"
+        ELSE                     : category[c] ← "Non-Krisis"
+
+    // ── Tahap 5: uji sensitivitas bobot (OECD Step 7: robustness) ─────
+    FOR i IN 1..N:
+        w' ← random_weights_on_simplex()        // Dirichlet uniform / perturbasi lokal
+        FOR each topic c:
+            s        ← Σ_{k ∈ K} w'_k · Î_k[c]
+            cat_i[c] ← klasifikasi(s, θ1, θ2)
+    FOR each topic c:
+        stability[c] ← fraction(cat_i[c] == category[c] over all i)
+
+    RETURN {crisis_index: CrisisIndex, category: category, stability: stability}

@@ -1,0 +1,81 @@
+=== ijazah (n=5000) ===
+
+--- Fine-tuned (XLM-RoBERTa) (n_scored=5000) ---
+              precision    recall  f1-score   support
+
+    negative       0.75      0.67      0.71      3176
+     neutral       0.38      0.74      0.50      1068
+    positive       0.17      0.02      0.03       756
+
+    accuracy                           0.59      5000
+   macro avg       0.43      0.48      0.41      5000
+weighted avg       0.58      0.59      0.56      5000
+
+Confusion matrix (rows=true, cols=pred, order=['negative', 'neutral', 'positive']):
+[[2137  980   59]
+ [ 272  786   10]
+ [ 433  309   14]]
+
+--- RoBERTa API (cached) (n_scored=5000) ---
+              precision    recall  f1-score   support
+
+    negative       0.79      0.21      0.34      3176
+     neutral       0.24      0.92      0.38      1068
+    positive       0.09      0.01      0.01       756
+
+    accuracy                           0.33      5000
+   macro avg       0.37      0.38      0.24      5000
+weighted avg       0.56      0.33      0.30      5000
+
+Confusion matrix (rows=true, cols=pred, order=['negative', 'neutral', 'positive']):
+[[ 678 2452   46]
+ [  80  982    6]
+ [ 104  647    5]]
+
+--- IndoBERT API (No Limit) (n_scored=5000) ---
+              precision    recall  f1-score   support
+
+    negative       0.73      0.59      0.65      3176
+     neutral       0.34      0.73      0.46      1068
+    positive       0.13      0.02      0.04       756
+
+    accuracy                           0.53      5000
+   macro avg       0.40      0.45      0.38      5000
+weighted avg       0.56      0.53      0.52      5000
+
+Confusion matrix (rows=true, cols=pred, order=['negative', 'neutral', 'positive']):
+[[1874 1209   93]
+ [ 273  780   15]
+ [ 415  325   16]]
+
+--- GPT-5.4 mini (n_scored=5000) ---
+              precision    recall  f1-score   support
+
+    negative       0.81      0.78      0.79      3176
+     neutral       0.46      0.70      0.55      1068
+    positive       0.60      0.24      0.35       756
+
+    accuracy                           0.68      5000
+   macro avg       0.62      0.57      0.56      5000
+weighted avg       0.70      0.68      0.67      5000
+
+Confusion matrix (rows=true, cols=pred, order=['negative', 'neutral', 'positive']):
+[[2470  621   85]
+ [ 284  746   38]
+ [ 310  262  184]]
+
+--- IndoBERT (n_scored=5000) ---
+              precision    recall  f1-score   support
+
+    negative       0.73      0.66      0.69      3176
+     neutral       0.36      0.68      0.47      1068
+    positive       0.13      0.02      0.03       756
+
+    accuracy                           0.57      5000
+   macro avg       0.40      0.45      0.40      5000
+weighted avg       0.56      0.57      0.54      5000
+
+Confusion matrix (rows=true, cols=pred, order=['negative', 'neutral', 'positive']):
+[[2101 1011   64]
+ [ 324  726   18]
+ [ 468  276   12]]

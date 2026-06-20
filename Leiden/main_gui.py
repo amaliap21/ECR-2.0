@@ -1324,7 +1324,15 @@ def create_gui():
         ui.timer(0.5, safe_timer_tick)
 
     port = int(os.environ.get('PORT', 8080))
-    ui.run(title='ECR 2.0 Pipeline — Leiden', host='0.0.0.0', port=port, dark=False)
+    ui.run(
+        title='ECR 2.0 Pipeline — Leiden',
+        host='0.0.0.0',
+        port=port,
+        dark=False,
+        reload=False,   # produksi: nonaktifkan auto-reload (hemat memori, stabil)
+        show=False,     # server headless: jangan coba membuka browser
+        storage_secret=os.environ.get('STORAGE_SECRET', 'ecr2-leiden-secret'),
+    )
 
 
 if __name__ in {"__main__", "__mp_main__"}:

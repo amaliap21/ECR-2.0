@@ -1,0 +1,7 @@
+Best model by overall macro-F1: Fine-tuned (XLM-RoBERTa)
+  split                    model     n  n_scored  accuracy  macro_f1   f1_neg   f1_neu   f1_pos  precision   recall
+overall Fine-tuned (XLM-RoBERTa) 30000     30000    0.2947  0.255904 0.087393 0.594606 0.085714   0.404846 0.392286
+overall  IndoBERT API (No Limit) 30000     30000    0.3202  0.251989 0.098111 0.597727 0.060130   0.352108 0.401995
+overall             GPT-5.4 mini 30000     30000    0.2458  0.234169 0.062615 0.542555 0.097338   0.359384 0.320404
+overall                 IndoBERT 30000     30000    0.2657  0.228022 0.095422 0.528901 0.059744   0.336808 0.382067
+overall     RoBERTa API (cached) 30000     30000    0.2065  0.164551 0.055867 0.395893 0.041892   0.174733 0.240242

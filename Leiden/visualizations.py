@@ -634,6 +634,114 @@ def plot_network(G, df_users, outdir, top_n=500):
     return path
 
 
+# ── 08b. Network Graph — Cuplikan kecil (interaksi berarah deg_min..deg_max) ──
+def plot_network_snippet(G, df_users, outdir, deg_min=5, deg_max=10,
+                         max_seeds=15, show_labels=True, show_edge_labels=None,
+                         fname='08b_network_snippet.png'):
+    """Cuplikan kecil graf interaksi: pengguna (seed) yang memiliki interaksi
+    BERARAH (out-degree) antara deg_min..deg_max orang, beserta target
+    interaksinya. Gambar dibuat besar & jelas. TIDAK mengubah plot_network lama.
+    """
+    _setup_style()
+
+    out_deg = dict(G.out_degree()) if G.is_directed() else dict(G.degree())
+    deg_all = dict(G.degree())
+
+    seeds = [n for n, d in out_deg.items() if deg_min <= d <= deg_max]
+    seeds = sorted(seeds, key=lambda n: out_deg[n], reverse=True)[:max_seeds]
+    seeds_set = set(seeds)
+
+    fig, ax = plt.subplots(1, 1, figsize=(20, 16))
+
+    if not seeds:
+        ax.text(0.5, 0.5,
+                f'Tidak ada pengguna dengan {deg_min}-{deg_max} interaksi berarah',
+                ha='center', va='center', fontsize=16)
+        ax.axis('off')
+        path = os.path.join(outdir, fname)
+        _save(fig, path, dpi=200)
+        return path
+
+    # node set = seed + target interaksinya (out-neighbors)
+    nodes = set(seeds)
+    for s in seeds:
+        nodes.update(G.successors(s) if G.is_directed() else G.neighbors(s))
+    H = G.subgraph(nodes).copy()
+
+    lean_map = dict(zip(df_users['user'].astype(str), df_users['lean_scalar']))
+
+    try:
+        pos = nx.spring_layout(H, k=2.4 / math.sqrt(max(H.number_of_nodes(), 1)),
+                               iterations=200, seed=42)
+    except Exception:
+        pos = nx.random_layout(H, seed=42)
+
+    def color_of(n):
+        l = lean_map.get(str(n), 0)
+        if l > 0.15:
+            return COLORS['pro']
+        if l < -0.15:
+            return COLORS['contra']
+        return COLORS['neutral']
+
+    # ukuran node/label/panah menyesuaikan jumlah node agar graf kecil tetap jelas
+    N = H.number_of_nodes()
+    if N <= 12:
+        seed_sz, tgt_sz, fsz, ewidth, asize = 4200, 2500, 20, 2.8, 40
+    elif N <= 30:
+        seed_sz, tgt_sz, fsz, ewidth, asize = 2400, 1300, 14, 2.2, 30
+    else:
+        seed_sz, tgt_sz, fsz, ewidth, asize = 1000, 420, 9, 1.4, 18
+
+    node_colors = [color_of(n) for n in H.nodes()]
+    node_sizes = [seed_sz if n in seeds_set else tgt_sz for n in H.nodes()]
+    edge_cols = ['black' if n in seeds_set else '#555555' for n in H.nodes()]
+    lws = [2.4 if n in seeds_set else 0.8 for n in H.nodes()]
+
+    nx.draw_networkx_edges(H, pos, node_size=node_sizes, ax=ax,
+                           alpha=0.9, width=ewidth,
+                           arrows=True, arrowsize=asize, arrowstyle='-|>',
+                           edge_color='#2c3e50',
+                           min_source_margin=10, min_target_margin=18,
+                           connectionstyle='arc3,rad=0.08')
+    nx.draw_networkx_nodes(H, pos, node_color=node_colors, node_size=node_sizes,
+                           alpha=0.92, ax=ax, linewidths=lws, edgecolors=edge_cols)
+    if show_labels:
+        nx.draw_networkx_labels(H, pos, font_size=fsz, font_color='#1b2a44', ax=ax)
+
+    # label tipe interaksi (retweet/reply/mention) pada garis
+    se = (N <= 30) if show_edge_labels is None else show_edge_labels
+    if se:
+        elabels = {}
+        for u, v, d in H.edges(data=True):
+            t = d.get('types')
+            if isinstance(t, (set, list, tuple)):
+                lab = '/'.join(sorted(t))
+            else:
+                lab = d.get('label') or d.get('type', '')
+            elabels[(u, v)] = lab
+        efs = 13 if N <= 12 else (10 if N <= 30 else 8)
+        nx.draw_networkx_edge_labels(
+            H, pos, edge_labels=elabels, ax=ax, font_size=efs,
+            font_color='#7a3b12', label_pos=0.5, rotate=False,
+            bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='none', alpha=0.75))
+
+    patches = [
+        mpatches.Patch(color=COLORS['pro'], label='Pro'),
+        mpatches.Patch(color=COLORS['neutral'], label='Neutral'),
+        mpatches.Patch(color=COLORS['contra'], label='Contra'),
+    ]
+    ax.legend(handles=patches, loc='upper right', fontsize=15, framealpha=0.95)
+    ax.set_title(f'Network Graph — Cuplikan {len(seeds)} pengguna dengan '
+                 f'{deg_min}–{deg_max} interaksi berarah (+ targetnya)',
+                 fontsize=19, fontweight='bold')
+    ax.axis('off')
+
+    path = os.path.join(outdir, fname)
+    _save(fig, path, dpi=200)
+    return path
+
+
 # ── 09. Degree Distribution ──────────────────────────────────
 def plot_degrees(G, outdir):
     _setup_style()

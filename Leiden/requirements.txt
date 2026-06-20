@@ -1,3 +1,6 @@
+# Torch CPU-only: image deployment jauh lebih kecil & build tidak menarik wheel CUDA (~2.5GB)
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 numpy>=1.24
 pandas>=2.0
 networkx>=3.0
