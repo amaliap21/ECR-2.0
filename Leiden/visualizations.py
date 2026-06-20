@@ -43,7 +43,7 @@ def _save(fig, path, dpi=150):
     plt.close(fig)
 
 
-# ── 01. Calibration Impact ───────────────────────────────────
+# 01. Calibration Impact
 def plot_calibration_impact(df_users, df_sent, outdir):
     """Reliability diagram: predicted confidence vs actual accuracy per bin."""
     _setup_style()
@@ -103,7 +103,7 @@ def plot_calibration_impact(df_users, df_sent, outdir):
         ax.set_title(f'{title}\nECE = {ece:.4f}')
         ax.legend(fontsize=7, loc='upper left')
 
-    fig.suptitle('Reliability Diagrams — Perbandingan Metode Kalibrasi',
+    fig.suptitle('Reliability Diagrams - Perbandingan Metode Kalibrasi',
                  fontsize=14, fontweight='bold', y=1.02)
     fig.tight_layout()
     path = os.path.join(outdir, '01_calibration_impact.png')
@@ -111,7 +111,7 @@ def plot_calibration_impact(df_users, df_sent, outdir):
     return path
 
 
-# ── 01b. Calibration per Confidence ──────────────────────────
+# 01b. Calibration per Confidence
 def plot_calibration_per_confidence(df_sent, outdir):
     """Calibration error analysis per confidence threshold."""
     _setup_style()
@@ -177,7 +177,7 @@ def plot_calibration_per_confidence(df_sent, outdir):
     return path
 
 
-# ── 02. User Leaning Distribution ────────────────────────────
+# 02. User Leaning Distribution
 def plot_user_leaning(df_users, outdir):
     """3-panel: leaning histogram, confidence histogram, leaning vs confidence scatter."""
     _setup_style()
@@ -214,7 +214,7 @@ def plot_user_leaning(df_users, outdir):
     return path
 
 
-# ── 03. Community Sizes ──────────────────────────────────────
+# 03. Community Sizes
 def plot_community_sizes(results, outdir):
     _setup_style()
     n_algos = len(results)
@@ -233,7 +233,7 @@ def plot_community_sizes(results, outdir):
                color=color, alpha=0.85, edgecolor='black', linewidth=0.5)
         ax.set_xlabel('Community (sorted by size)')
         ax.set_ylabel('Number of Users')
-        ax.set_title(f'{label} — {len(comm_counts)} communities')
+        ax.set_title(f'{label} - {len(comm_counts)} communities')
         if top_n < len(comm_counts):
             ax.text(0.95, 0.95, f'Showing top {top_n}',
                     transform=ax.transAxes, ha='right', va='top', fontsize=8, color='gray')
@@ -245,7 +245,7 @@ def plot_community_sizes(results, outdir):
     return path
 
 
-# ── 04. ECR Results ──────────────────────────────────────────
+# 04. ECR Results
 def plot_ecr_results(results, homo, outdir):
     _setup_style()
     fig, axes = plt.subplots(1, 2, figsize=(14, 5))
@@ -284,14 +284,14 @@ def plot_ecr_results(results, homo, outdir):
     ax.set_ylabel('Neighbor Mean Leaning')
     ax.set_title(f'Homophily (Pearson r = {r_val:.4f})')
 
-    fig.suptitle('ECR 2.0 Results — Leiden vs Infomap', fontsize=14, fontweight='bold', y=1.02)
+    fig.suptitle('ECR 2.0 Results - Leiden vs Infomap', fontsize=14, fontweight='bold', y=1.02)
     fig.tight_layout()
     path = os.path.join(outdir, '04_ecr_results.png')
     _save(fig, path)
     return path
 
 
-# ── 05. Diffusion Bias ───────────────────────────────────────
+# 05. Diffusion Bias
 def plot_diffusion_bias(ic_df, df_users, results, outdir):
     _setup_style()
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
@@ -341,10 +341,10 @@ def plot_diffusion_bias(ic_df, df_users, results, outdir):
             ax.set_yticklabels([f"C{c}" for c in top['community']], fontsize=7)
             ax.axvline(0, color='black', lw=0.5)
             ax.set_xlabel('Mean Bias')
-            ax.set_title(f'{label} — Community Bias (top/bottom 10)')
+            ax.set_title(f'{label} - Community Bias (top/bottom 10)')
         else:
             ax.text(0.5, 0.5, 'No data', ha='center', va='center', transform=ax.transAxes)
-            ax.set_title(f'{label} — Community Bias')
+            ax.set_title(f'{label} - Community Bias')
 
     fig.suptitle('Analisis Diffusion Bias', fontsize=14, fontweight='bold', y=1.02)
     fig.tight_layout()
@@ -353,7 +353,7 @@ def plot_diffusion_bias(ic_df, df_users, results, outdir):
     return path
 
 
-# ── 06. Pro / Contra ─────────────────────────────────────────
+# 06. Pro / Contra
 def plot_pro_contra(df_users, results, outdir):
     _setup_style()
     fig, axes = plt.subplots(2, 3, figsize=(20, 10))
@@ -414,10 +414,10 @@ def plot_pro_contra(df_users, results, outdir):
                 ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.2,
                         str(v), ha='center', va='bottom', fontsize=9, fontweight='bold')
             ax.set_ylabel('Number of Communities')
-            ax.set_title(f'{label} — Community Stance ({len(df_comm)} communities)')
+            ax.set_title(f'{label} - Community Stance ({len(df_comm)} communities)')
         else:
             ax.text(0.5, 0.5, 'No data', ha='center', va='center', transform=ax.transAxes)
-            ax.set_title(f'{label} — Community Stance')
+            ax.set_title(f'{label} - Community Stance')
 
     # Bottom-right: top communities by size
     ax = axes[1, 2]
@@ -431,7 +431,7 @@ def plot_pro_contra(df_users, results, outdir):
         ax.set_yticks(range(len(top_comms)))
         ax.set_yticklabels([f"C{c}" for c in top_comms['community_id']], fontsize=8)
         ax.set_xlabel('Community Size')
-        ax.set_title(f'{first_label} — Top 15 Communities by Size')
+        ax.set_title(f'{first_label} - Top 15 Communities by Size')
         ax.invert_yaxis()
         patches = [mpatches.Patch(color=COLORS['pro'], label='Pro'),
                    mpatches.Patch(color=COLORS['neutral'], label='Neutral'),
@@ -447,7 +447,7 @@ def plot_pro_contra(df_users, results, outdir):
     return path
 
 
-# ── 07. Shifts (Sentiment Trajectory) ────────────────────────
+# 07. Shifts (Sentiment Trajectory)
 def plot_shifts(df, df_users, results, outdir):
     """4-panel: shift types, shift magnitudes, sentiment trajectory, directional flow."""
     _setup_style()
@@ -460,7 +460,7 @@ def plot_shifts(df, df_users, results, outdir):
     neg_col = next((c for c in pcols if 'neg' in c), None)
     pos_col = next((c for c in pcols if 'pos' in c), None)
 
-    # Determine user column — try 'user' first, fallback to 'from_id'
+    # Determine user column - try 'user' first, fallback to 'from_id'
     if 'user' in df.columns:
         user_col = 'user'
     else:
@@ -580,7 +580,7 @@ def plot_shifts(df, df_users, results, outdir):
     return path
 
 
-# ── 08. Network Graph ────────────────────────────────────────
+# 08. Network Graph
 def plot_network(G, df_users, outdir, top_n=500):
     _setup_style()
     fig, ax = plt.subplots(1, 1, figsize=(12, 12))
@@ -625,7 +625,7 @@ def plot_network(G, df_users, outdir, top_n=500):
         mpatches.Patch(color=COLORS['contra'], label='Contra'),
     ]
     ax.legend(handles=patches, loc='upper right', fontsize=10)
-    ax.set_title(f'Network Graph — Top {min(top_n, H.number_of_nodes())} Degree Users',
+    ax.set_title(f'Network Graph - Top {min(top_n, H.number_of_nodes())} Degree Users',
                  fontsize=14, fontweight='bold')
     ax.axis('off')
 
@@ -634,7 +634,7 @@ def plot_network(G, df_users, outdir, top_n=500):
     return path
 
 
-# ── 08b. Network Graph — Cuplikan kecil (interaksi berarah deg_min..deg_max) ──
+# 08b. Network Graph - Cuplikan kecil (interaksi berarah deg_min..deg_max)
 def plot_network_snippet(G, df_users, outdir, deg_min=5, deg_max=10,
                          max_seeds=15, show_labels=True, show_edge_labels=None,
                          fname='08b_network_snippet.png'):
@@ -732,8 +732,8 @@ def plot_network_snippet(G, df_users, outdir, deg_min=5, deg_max=10,
         mpatches.Patch(color=COLORS['contra'], label='Contra'),
     ]
     ax.legend(handles=patches, loc='upper right', fontsize=15, framealpha=0.95)
-    ax.set_title(f'Network Graph — Cuplikan {len(seeds)} pengguna dengan '
-                 f'{deg_min}–{deg_max} interaksi berarah (+ targetnya)',
+    ax.set_title(f'Network Graph - Cuplikan {len(seeds)} pengguna dengan '
+                 f'{deg_min}-{deg_max} interaksi berarah (+ targetnya)',
                  fontsize=19, fontweight='bold')
     ax.axis('off')
 
@@ -742,7 +742,7 @@ def plot_network_snippet(G, df_users, outdir, deg_min=5, deg_max=10,
     return path
 
 
-# ── 09. Degree Distribution ──────────────────────────────────
+# 09. Degree Distribution
 def plot_degrees(G, outdir):
     _setup_style()
     fig, axes = plt.subplots(1, 3, figsize=(16, 5))
@@ -778,7 +778,7 @@ def plot_degrees(G, outdir):
     return path
 
 
-# ── 10. Sentiment Sample Table ───────────────────────────────
+# 10. Sentiment Sample Table
 def plot_sentiment_sample(df, df_sent, outdir, n_rows=10):
     """Table image showing 10 sample rows of sentiment inference results."""
     _setup_style()
@@ -804,7 +804,7 @@ def plot_sentiment_sample(df, df_sent, outdir, n_rows=10):
 
     fig, ax = plt.subplots(figsize=(16, max(3, 0.5 * n_rows + 1.5)))
     ax.axis('off')
-    ax.set_title('Contoh Hasil Sentimen (Fine-tuned Model) — 10 Sample Rows',
+    ax.set_title('Contoh Hasil Sentimen (Fine-tuned Model) - 10 Sample Rows',
                  fontsize=14, fontweight='bold', pad=20)
 
     col_colors = ['#34495e'] * len(df_table.columns)
@@ -848,7 +848,7 @@ def plot_sentiment_sample(df, df_sent, outdir, n_rows=10):
     return path
 
 
-# ── Master function ──────────────────────────────────────────
+# Master function
 def generate_all_visualizations(
     G, df_users, results, homo, ic_df, outdir,
     df=None, df_sent=None, log_fn=None,

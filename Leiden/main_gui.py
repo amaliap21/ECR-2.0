@@ -320,7 +320,7 @@ class LeidenPipelineGUI:
             self.log(f"  Label distribution: {df_sent['indobert_label'].value_counts().to_dict()}")
             self.log(f"[DONE] Sentiment inference complete. (Time: {elapsed:.2f}s)")
 
-            #  3. Build interactions & graph ─
+            # 3. Build interactions & graph
             self.log("\n[STEP 3] Building interactions & graph...")
             start = time.time()
 
@@ -430,7 +430,7 @@ class LeidenPipelineGUI:
                 'Consensus': comms_consensus,
             }
 
-            #  6b. Community quality metrics ─
+            # 6b. Community quality metrics
             self.log("\n[STEP 6b] Validating community quality...")
             start_q = time.time()
 
@@ -558,7 +558,7 @@ class LeidenPipelineGUI:
             self.timings["ECR threshold"] = elapsed
             self.log(f"[DONE] Threshold estimated. (Time: {elapsed:.2f}s)")
 
-            #  8b. ECR Statistical Validation (Bootstrap CI + Permutation Test) ─
+            # 8b. ECR Statistical Validation (Bootstrap CI + Permutation Test)
             self.log("\n[STEP 8b] ECR Statistical Validation...")
             start = time.time()
 
@@ -570,7 +570,7 @@ class LeidenPipelineGUI:
                 comms = results[label]['communities']
                 ecr_observed = results[label]['ecr2'].ratio
 
-                # ── Bootstrap 95% CI ──
+                # Bootstrap 95% CI
                 boot_ratios = []
                 users_in_graph = [u for u in df_users['user'] if u in G]
                 n_users = len(users_in_graph)
@@ -592,7 +592,7 @@ class LeidenPipelineGUI:
                 else:
                     ci_lo, ci_hi = ecr_observed, ecr_observed
 
-                # ── Permutation Test ──
+                # Permutation Test
                 perm_ratios = []
                 lean_vals = df_users.set_index('user')['lean_scalar'].to_dict()
                 user_list = list(lean_vals.keys())
@@ -623,7 +623,7 @@ class LeidenPipelineGUI:
                 self.log(f"    Bootstrap 95% CI   : [{ci_lo:.4f}, {ci_hi:.4f}]")
                 self.log(f"    Permutation p-value: {p_value:.4f} {'(significant)' if p_value < 0.05 else '(not significant)'}")
 
-                # Verdict — correct logic: ECR >= threshold means observed
+                # Verdict - correct logic: ECR >= threshold means observed
                 # agreement structure exceeds null-model expectation, i.e.,
                 # echo chamber present (Cinelli et al., 2021; Amendola et al., 2024).
                 if ecr_observed >= threshold and p_value < 0.05 and ci_lo >= threshold:
@@ -674,7 +674,7 @@ class LeidenPipelineGUI:
                 ic_summary = None
                 self.log("\n[STEP 10] Diffusion simulation skipped.")
 
-            #  11. Community classification (both) ─
+            # 11. Community classification (both)
             self.log("\n[STEP 11] Classifying communities...")
             start = time.time()
 
@@ -688,7 +688,7 @@ class LeidenPipelineGUI:
             self.timings["Community classification"] = elapsed
             self.log(f"[DONE] Community classification complete. (Time: {elapsed:.2f}s)")
 
-            #  12. Diffusion bias metrics (both) ─
+            # 12. Diffusion bias metrics (both)
             if config['diffusion_enabled'] and ic_df is not None:
                 self.log("\n[STEP 12] Computing diffusion bias metrics...")
                 start = time.time()
@@ -735,7 +735,7 @@ class LeidenPipelineGUI:
                 # ECR metrics
                 ecr2 = r['ecr2']
                 with open(os.path.join(sub, "ecr_metrics.txt"), 'w', encoding='utf-8') as f:
-                    f.write(f"ECR 2.0 Results — {label}\n")
+                    f.write(f"ECR 2.0 Results - {label}\n")
                     f.write(f"{'='*50}\n")
                     f.write(f"Intra-community agreement : {ecr2.intra:.6f}\n")
                     f.write(f"Inter-community agreement : {ecr2.inter:.6f}\n")
@@ -791,7 +791,7 @@ class LeidenPipelineGUI:
 
             with open(summary_path, 'w', encoding='utf-8') as f:
                 f.write(f"{'='*header_w}\n")
-                f.write(f"  ECR 2.0 — Multi-Algorithm Comparison (Leiden, Infomap, MLCC)\n")
+                f.write(f"  ECR 2.0 - Multi-Algorithm Comparison (Leiden, Infomap, MLCC)\n")
                 f.write(f"{'='*header_w}\n\n")
                 f.write(_row("Metric", labels_out))
                 f.write("-" * header_w + "\n")
@@ -851,7 +851,7 @@ class LeidenPipelineGUI:
             self.timings["Save outputs"] = elapsed
             self.log(f"[DONE] Outputs saved. (Time: {elapsed:.2f}s)")
 
-            #  14. Generate visualizations ─
+            # 14. Generate visualizations
             self.log("\n[STEP 14] Generating visualizations...")
             start = time.time()
 
@@ -865,7 +865,7 @@ class LeidenPipelineGUI:
             self.timings["Visualizations"] = elapsed
             self.log(f"[DONE] {len(self.viz_paths)} visualizations saved to {viz_dir}/ (Time: {elapsed:.2f}s)")
 
-            #  Summary ─
+            # Summary
             total_elapsed = time.time() - total_start
             self.log("\n" + "=" * 60)
             self.log("[PIPELINE COMPLETE]")
@@ -891,7 +891,7 @@ def create_gui():
 
     config = {
         'workdir': 'pipeline_out',
-        # Sentiment — fine-tuned model inference
+        # Sentiment - fine-tuned model inference
         'finetuned_model_path': _default_finetuned,
         'text_col': 'cleaned_text',
         'batch_size': 64,
@@ -951,10 +951,10 @@ def create_gui():
         with ui.column().classes('w-[920px] mx-auto space-y-6'):
 
             #  Header 
-            ui.markdown('# ECR 2.0 Pipeline — Leiden').classes('text-center mb-2 text-white')
+            ui.markdown('# ECR 2.0 Pipeline - Leiden').classes('text-center mb-2 text-white')
             ui.markdown('*Echo Chamber Ratio 2.0 with Leiden Community Detection*').classes('text-center mb-6 text-gray-300')
 
-            #  Dataset Input ─
+            # Dataset Input
             with ui.card().classes('w-full p-6'):
                 ui.label('Dataset Input').classes('text-xl font-semibold mb-4')
 
@@ -1012,7 +1012,7 @@ def create_gui():
                         rs_input = ui.number(value=config['random_state'], min=0).classes('w-full')
                         rs_input.bind_value(config, 'random_state')
 
-            #  Sentiment Configuration ─
+            # Sentiment Configuration
             with ui.card().classes('w-full p-6'):
                 ui.label('Sentiment Configuration').classes('text-xl font-semibold mb-4')
                 ui.label(
@@ -1065,7 +1065,7 @@ def create_gui():
                         info_label('Topic Polarity',
                                    'Menentukan bagaimana sentimen dipetakan ke posisi user. '
                                    '"negative_is_pro": sentimen negatif berarti PRO terhadap topik '
-                                   '(misal: topik "Indonesia Gelap" — komentar negatif = mendukung isu). '
+                                   '(misal: topik "Indonesia Gelap" - komentar negatif = mendukung isu). '
                                    '"positive_is_pro": sentimen positif = PRO topik (misal: topik vaksinasi).')
                         polarity_select = ui.select(
                             ['negative_is_pro', 'positive_is_pro'],
@@ -1092,8 +1092,8 @@ def create_gui():
                             with ui.row().classes('w-full gap-4'):
                                 with ui.column().classes('flex-1'):
                                     info_label('Calibration Method',
-                                               '"isotonic": regresi isotonic per kelas — fleksibel, non-parametrik. '
-                                               '"temperature": scaling tunggal pada logits — lebih stabil untuk data kecil.')
+                                               '"isotonic": regresi isotonic per kelas - fleksibel, non-parametrik. '
+                                               '"temperature": scaling tunggal pada logits - lebih stabil untuk data kecil.')
                                     cal_method_select = ui.select(
                                         ['isotonic', 'temperature'],
                                         value=config['calibration_method'],
@@ -1103,7 +1103,7 @@ def create_gui():
                 cal_switch.on('update:model-value', lambda: update_calibration_settings())
                 update_calibration_settings()
 
-            #  Community Detection ─
+            # Community Detection
             with ui.card().classes('w-full p-6'):
                 ui.label('Community Detection').classes('text-xl font-semibold mb-4')
                 ui.label('Kedua algoritma (Leiden + Infomap) dijalankan secara parallel dan hasil dibandingkan.').classes('text-xs text-gray-500 mb-2')
@@ -1133,7 +1133,7 @@ def create_gui():
                 auto_res_switch.on('update:model-value', lambda: update_resolution_settings())
                 update_resolution_settings()
 
-            #  Diffusion & Threshold ─
+            # Diffusion & Threshold
             with ui.card().classes('w-full p-6'):
                 ui.label('Diffusion Simulation & ECR Threshold').classes('text-xl font-semibold mb-4')
 
@@ -1214,31 +1214,49 @@ def create_gui():
                     ).start()
 
                 def load_previous_results():
-                    """Load visualizations from a previous pipeline run."""
-                    outdir = config['workdir']
-                    viz_dir = os.path.join(outdir, 'visualizations')
-                    if not os.path.isdir(viz_dir):
-                        ui.notify(f'Folder tidak ditemukan: {viz_dir}', type='negative')
-                        return
+                    """Load visualizations dari run sebelumnya.
 
+                    Mendeteksi otomatis folder visualizations di bawah
+                    pipeline_out/new/<topik>/visualizations (juga mendukung
+                    pipeline_out/<topik>/visualizations dan pipeline_out/visualizations),
+                    lalu memuat yang PNG-nya paling baru (run terakhir).
+                    """
                     from glob import glob
-                    pngs = sorted(glob(os.path.join(viz_dir, '*.png')))
-                    if not pngs:
-                        ui.notify(f'Tidak ada visualisasi di {viz_dir}', type='negative')
+                    base = config['workdir']  # mis. 'pipeline_out'
+                    candidates = sorted(set(
+                        glob(os.path.join(base, 'new', '*', 'visualizations'))
+                        + glob(os.path.join(base, '*', 'visualizations'))
+                        + [os.path.join(base, 'visualizations')]
+                    ))
+                    # hanya folder yang benar-benar berisi PNG
+                    candidates = [d for d in candidates
+                                  if os.path.isdir(d) and glob(os.path.join(d, '*.png'))]
+                    if not candidates:
+                        ui.notify(f'Tidak ada folder visualizations berisi PNG di bawah {base}/',
+                                  type='negative')
                         return
 
+                    # pilih folder dengan PNG paling baru (run terakhir)
+                    def _latest(d):
+                        return max(os.path.getmtime(p) for p in glob(os.path.join(d, '*.png')))
+                    viz_dir = max(candidates, key=_latest)
+
+                    pngs = sorted(glob(os.path.join(viz_dir, '*.png')))
                     pipeline.viz_paths = pngs
                     _prev_viz_count[0] = 0  # trigger gallery refresh
 
-                    # Load comparison_summary.txt if exists
-                    summary_path = os.path.join(outdir, 'comparison_summary.txt')
+                    topic_dir = os.path.dirname(viz_dir)
+                    topic_name = os.path.basename(topic_dir) or base
+                    summary_path = os.path.join(topic_dir, 'comparison_summary.txt')
                     if os.path.isfile(summary_path):
                         with open(summary_path, 'r', encoding='utf-8') as f:
-                            log_area.set_value(f"[LOADED] Previous results from {outdir}/\n\n{f.read()}")
+                            log_area.set_value(
+                                f"[LOADED] {topic_name} - {len(pngs)} visualisasi dari {viz_dir}/\n\n{f.read()}")
                     else:
-                        log_area.set_value(f"[LOADED] {len(pngs)} visualizations from {viz_dir}/")
+                        log_area.set_value(
+                            f"[LOADED] {topic_name} - {len(pngs)} visualisasi dari {viz_dir}/")
 
-                    ui.notify(f'Loaded {len(pngs)} visualizations!', type='positive')
+                    ui.notify(f'Loaded {len(pngs)} visualisasi dari "{topic_name}"!', type='positive')
 
                 run_button.on('click', validate_and_run)
                 load_button.on('click', load_previous_results)
@@ -1253,14 +1271,14 @@ def create_gui():
                 ui.label('Pipeline Logs').classes('text-xl font-semibold mb-4')
                 log_area = ui.textarea().classes('w-full h-96 font-mono text-sm').props('readonly outlined')
 
-            #  Visualizations Gallery ─
+            # Visualizations Gallery
             with ui.card().classes('w-full p-6'):
                 ui.label('Visualizations').classes('text-xl font-semibold mb-4')
                 viz_container = ui.column().classes('w-full')
                 with viz_container:
                     ui.label('Visualisasi akan muncul setelah pipeline selesai.').classes('text-gray-500')
 
-        #  Timer-based updates ─
+        # Timer-based updates
         def update_logs():
             content = ''
             while not pipeline.log_queue.empty():
@@ -1294,7 +1312,7 @@ def create_gui():
                 viz_container.clear()
                 with viz_container:
                     viz_names = {
-                        '01_calibration_impact.png': 'Reliability Diagrams — Kalibrasi',
+                        '01_calibration_impact.png': 'Reliability Diagrams - Kalibrasi',
                         '01b_calibration_per_confidence.png': 'Kalibrasi per Confidence',
                         '02_user_leaning.png': 'Distribusi User Leaning',
                         '03_community_sizes.png': 'Ukuran Komunitas',
@@ -1325,7 +1343,7 @@ def create_gui():
 
     port = int(os.environ.get('PORT', 8080))
     ui.run(
-        title='ECR 2.0 Pipeline — Leiden',
+        title='ECR 2.0 Pipeline - Leiden',
         host='0.0.0.0',
         port=port,
         dark=False,

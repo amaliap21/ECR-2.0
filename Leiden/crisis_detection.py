@@ -28,7 +28,7 @@ TOPICS = {
     "mbg":             "Keracunan MBG",
 }
 
-# Cohen's d & bias ratio difusi tervalidasi (Tabel IV.13 — effect size pro vs kontra)
+# Cohen's d & bias ratio difusi tervalidasi (Tabel IV.13 - effect size pro vs kontra)
 DIFF = {
     "vaksin":          (0.2045, 0.7588),
     "indonesia_gelap": (1.0528, 0.7924),
@@ -149,7 +149,7 @@ ax.axvline(THETA2, ls="--", color="#c0392b", alpha=0.7,
 ax.legend(loc="lower right", fontsize=10)
 ax.set_xlim(0, 1.0)
 ax.set_xlabel("Indeks Krisis (komposit)", fontsize=12)
-ax.set_title("Penentuan Isu Krisis — 6 Topik Viral", fontsize=15, fontweight="bold")
+ax.set_title("Penentuan Isu Krisis - 6 Topik Viral", fontsize=15, fontweight="bold")
 plt.tight_layout()
 fig.savefig(f"{OUTDIR}/crisis_index.png", dpi=180, facecolor="white")
 print(f"Saved {OUTDIR}/crisis_index.png")
@@ -215,7 +215,7 @@ ax.axvline(THETA1, ls="--", color="#e67e22", alpha=0.8)
 ax.axvline(THETA2, ls="--", color="#c0392b", alpha=0.8)
 ax.set_xlim(0, 1.0)
 ax.set_xlabel("Indeks Krisis di bawah variasi bobot (Dirichlet uniform)", fontsize=12)
-ax.set_title("Uji Sensitivitas Bobot — Stabilitas Klasifikasi Krisis",
+ax.set_title("Uji Sensitivitas Bobot - Stabilitas Klasifikasi Krisis",
              fontsize=15, fontweight="bold")
 ax.legend(loc="lower right")
 plt.tight_layout()

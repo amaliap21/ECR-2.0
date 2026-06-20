@@ -986,7 +986,7 @@ def sentiment_indobert(
     """Classify sentiment using IndoBERT (pretrained Indonesian BERT).
 
     Uses a HuggingFace model fine-tuned for Indonesian 3-class sentiment.
-    No translation needed — works directly on Indonesian text.
+    No translation needed - works directly on Indonesian text.
 
     Parameters
     ----------
@@ -1017,7 +1017,7 @@ def sentiment_indobert(
     _logging.getLogger("transformers.modeling_utils").setLevel(_prev_level)
     model.eval()
 
-    # Label mapping — ensure integer keys & normalize to standard labels
+    # Label mapping - ensure integer keys & normalize to standard labels
     _LABEL_NORM = {
         'positive': 'positive', 'pos': 'positive', 'pro': 'positive',
         'label_0': 'positive',

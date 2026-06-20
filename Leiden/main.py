@@ -1,5 +1,5 @@
 """
-ECR 2.0 Pipeline — CLI version.
+ECR 2.0 Pipeline - CLI version.
 
 Input/output sama seperti main_gui.py, hanya beda interface:
 - Input  : argparse flags (bukan upload web UI)
@@ -136,13 +136,13 @@ def build_interactions(df, get_username=None):
 
 
 def run_pipeline(config):
-    """Jalankan pipeline penuh — mirror dari LeidenPipelineGUI.run_pipeline."""
+    """Jalankan pipeline penuh - mirror dari LeidenPipelineGUI.run_pipeline."""
     timings = {}
     total_start = time.time()
     outdir = config["workdir"]
     os.makedirs(outdir, exist_ok=True)
 
-    # ── 1. Load data ──
+    # 1. Load data
     log("\n[STEP 1] Loading data...")
     start = time.time()
 
@@ -180,7 +180,7 @@ def run_pipeline(config):
     timings["Load data"] = time.time() - start
     log(f"[DONE] Data loaded. (Time: {timings['Load data']:.2f}s)")
 
-    # ── 2. Sentiment inference ──
+    # 2. Sentiment inference
     log("\n[STEP 2] Fine-tuned sentiment inference...")
     start = time.time()
 
@@ -300,7 +300,7 @@ def run_pipeline(config):
     log(f"  Label distribution: {df_sent['indobert_label'].value_counts().to_dict()}")
     log(f"[DONE] Sentiment inference complete. (Time: {timings['Sentiment inference']:.2f}s)")
 
-    # ── 3. Build interactions & graph ──
+    # 3. Build interactions & graph
     log("\n[STEP 3] Building interactions & graph...")
     start = time.time()
 
@@ -315,7 +315,7 @@ def run_pipeline(config):
     timings["Build graph"] = time.time() - start
     log(f"[DONE] Graph built. (Time: {timings['Build graph']:.2f}s)")
 
-    # ── 4. Estimate user leaning ──
+    # 4. Estimate user leaning
     log("\n[STEP 4] Estimating user leaning...")
     start = time.time()
 
@@ -336,7 +336,7 @@ def run_pipeline(config):
     timings["User leaning"] = time.time() - start
     log(f"[DONE] User leaning estimated. (Time: {timings['User leaning']:.2f}s)")
 
-    # ── 5. Calibration (optional) ──
+    # 5. Calibration (optional)
     if config["calibration_enabled"]:
         log("\n[STEP 5] Calibrating probabilities...")
         start = time.time()
@@ -354,7 +354,7 @@ def run_pipeline(config):
     else:
         log("\n[STEP 5] Calibration skipped.")
 
-    # ── 6. Community detection (Leiden + Infomap) ──
+    # 6. Community detection (Leiden + Infomap)
     log("\n[STEP 6] Detecting communities (Leiden + Infomap)...")
     start = time.time()
 
@@ -404,7 +404,7 @@ def run_pipeline(config):
         "Consensus": comms_consensus,
     }
 
-    # ── 6b. Quality metrics ──
+    # 6b. Quality metrics
     log("\n[STEP 6b] Validating community quality...")
     start_q = time.time()
 
@@ -483,7 +483,7 @@ def run_pipeline(config):
     timings["Quality metrics"] = time.time() - start_q
     log(f"[DONE] Quality validation complete. (Time: {timings['Quality metrics']:.2f}s)")
 
-    # ── 7. Compute ECR 2.0 ──
+    # 7. Compute ECR 2.0
     log("\n[STEP 7] Computing ECR 2.0 (Leiden + Infomap + MLCC)...")
     start = time.time()
 
@@ -504,7 +504,7 @@ def run_pipeline(config):
     timings["ECR 2.0"] = time.time() - start
     log(f"\n[DONE] ECR 2.0 computed. (Time: {timings['ECR 2.0']:.2f}s)")
 
-    # ── 8. ECR threshold ──
+    # 8. ECR threshold
     log("\n[STEP 8] Estimating ECR threshold (Leiden + Infomap)...")
     start = time.time()
 
@@ -520,7 +520,7 @@ def run_pipeline(config):
     timings["ECR threshold"] = time.time() - start
     log(f"[DONE] Threshold estimated. (Time: {timings['ECR threshold']:.2f}s)")
 
-    # ── 8b. Statistical validation ──
+    # 8b. Statistical validation
     log("\n[STEP 8b] ECR Statistical Validation...")
     start = time.time()
 
@@ -600,7 +600,7 @@ def run_pipeline(config):
     timings["ECR validation"] = time.time() - start
     log(f"[DONE] ECR validation complete. (Time: {timings['ECR validation']:.2f}s)")
 
-    # ── 9. Homophily ──
+    # 9. Homophily
     log("\n[STEP 9] Computing homophily...")
     start = time.time()
     homo = compute_homophily(G, df_users)
@@ -608,7 +608,7 @@ def run_pipeline(config):
     timings["Homophily"] = time.time() - start
     log(f"[DONE] Homophily computed. (Time: {timings['Homophily']:.2f}s)")
 
-    # ── 10. Diffusion bias ──
+    # 10. Diffusion bias
     if config["diffusion_enabled"]:
         log("\n[STEP 10] Simulating diffusion bias (IC)...")
         start = time.time()
@@ -627,7 +627,7 @@ def run_pipeline(config):
         ic_summary = None
         log("\n[STEP 10] Diffusion simulation skipped.")
 
-    # ── 11. Community classification ──
+    # 11. Community classification
     log("\n[STEP 11] Classifying communities...")
     start = time.time()
     for label in results:
@@ -638,7 +638,7 @@ def run_pipeline(config):
     timings["Community classification"] = time.time() - start
     log(f"[DONE] Community classification complete. (Time: {timings['Community classification']:.2f}s)")
 
-    # ── 12. Diffusion bias metrics ──
+    # 12. Diffusion bias metrics
     if config["diffusion_enabled"] and ic_df is not None:
         log("\n[STEP 12] Computing diffusion bias metrics...")
         start = time.time()
@@ -656,7 +656,7 @@ def run_pipeline(config):
         timings["Diffusion metrics"] = time.time() - start
         log(f"[DONE] Diffusion metrics computed. (Time: {timings['Diffusion metrics']:.2f}s)")
 
-    # ── 13. Save outputs ──
+    # 13. Save outputs
     log("\n[STEP 13] Saving outputs...")
     start = time.time()
 
@@ -677,7 +677,7 @@ def run_pipeline(config):
 
         ecr2 = r["ecr2"]
         with open(os.path.join(sub, "ecr_metrics.txt"), "w", encoding="utf-8") as f:
-            f.write(f"ECR 2.0 Results — {label}\n")
+            f.write(f"ECR 2.0 Results - {label}\n")
             f.write(f"{'='*50}\n")
             f.write(f"Intra-community agreement : {ecr2.intra:.6f}\n")
             f.write(f"Inter-community agreement : {ecr2.inter:.6f}\n")
@@ -730,7 +730,7 @@ def run_pipeline(config):
 
     with open(summary_path, "w", encoding="utf-8") as f:
         f.write(f"{'='*header_w}\n")
-        f.write(f"  ECR 2.0 — Multi-Algorithm Comparison (Leiden, Infomap, MLCC)\n")
+        f.write(f"  ECR 2.0 - Multi-Algorithm Comparison (Leiden, Infomap, MLCC)\n")
         f.write(f"{'='*header_w}\n\n")
         f.write(_row("Metric", labels_out))
         f.write("-" * header_w + "\n")
@@ -786,7 +786,7 @@ def run_pipeline(config):
     timings["Save outputs"] = time.time() - start
     log(f"[DONE] Outputs saved. (Time: {timings['Save outputs']:.2f}s)")
 
-    # ── 14. Visualizations ──
+    # 14. Visualizations
     log("\n[STEP 14] Generating visualizations...")
     start = time.time()
     viz_dir = os.path.join(outdir, "visualizations")
@@ -797,7 +797,7 @@ def run_pipeline(config):
     timings["Visualizations"] = time.time() - start
     log(f"[DONE] {len(viz_paths)} visualizations saved to {viz_dir}/ (Time: {timings['Visualizations']:.2f}s)")
 
-    # ── Summary ──
+    # Summary
     total_elapsed = time.time() - total_start
     log("\n" + "=" * 60)
     log("[PIPELINE COMPLETE]")
@@ -816,7 +816,7 @@ def build_parser():
     default_finetuned = os.path.join(script_dir, "finetuned_sentiment_cardiff_xlmroberta")
 
     p = argparse.ArgumentParser(
-        description="ECR 2.0 Pipeline (CLI) — sama input/output dengan main_gui.py.",
+        description="ECR 2.0 Pipeline (CLI) - sama input/output dengan main_gui.py.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
