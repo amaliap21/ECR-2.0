@@ -14,12 +14,24 @@ DEG_MIN, DEG_MAX, MAX_SEEDS = 4, 4, 1   # versi mini: 1 seed berderajat 4 (~5 or
 FNAME = "08c_network_mini.png"
 
 TOPICS = [
-    {"name": "vaksin", "csv": "total_data_cleaned_vaksin.csv",
-     "lean": "pipeline_out/new/vaksin/users_leaning.csv",
-     "out":  "pipeline_out/new/vaksin/visualizations"},
-    {"name": "boikot", "csv": "total_data_cleaned_mcd.csv",
-     "lean": "pipeline_out/new/boikot/users_leaning.csv",
-     "out":  "pipeline_out/new/boikot/visualizations"},
+    # {"name": "vaksin", "csv": "total_data_cleaned_vaksin.csv",
+    #  "lean": "pipeline_out/new/vaksin/users_leaning.csv",
+    #  "out":  "pipeline_out/new/vaksin/visualizations"},
+    # {"name": "boikot", "csv": "total_data_cleaned_mcd.csv",
+    #  "lean": "pipeline_out/new/boikot/users_leaning.csv",
+    #  "out":  "pipeline_out/new/boikot/visualizations"},
+    {"name": "indonesia_gelap", "csv": "total_data_cleaned_indonesia_gelap.csv",
+     "lean": "pipeline_out/new/indonesia_gelap/users_leaning.csv",
+     "out":  "pipeline_out/new/indonesia_gelap/visualizations"},
+    {"name": "korupsi", "csv": "total_data_cleaned_korupsi.csv",
+     "lean": "pipeline_out/new/korupsi/users_leaning.csv",
+     "out":  "pipeline_out/new/korupsi/visualizations"},
+    {"name": "ijazah", "csv": "total_data_cleaned_ijazah.csv",
+     "lean": "pipeline_out/new/ijazah/users_leaning.csv",
+     "out":  "pipeline_out/new/ijazah/visualizations"},
+    {"name": "mbg", "csv": "total_data_cleaned_mbg.csv",
+     "lean": "pipeline_out/new/mbg/users_leaning.csv",
+     "out":  "pipeline_out/new/mbg/visualizations"},
 ]
 
 MENT_RE = re.compile(r"\(id,([^)]*)\)//\(name,([^)]*)\)")
